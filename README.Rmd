@@ -1,0 +1,18 @@
+# pannot
+
+The pannot package provides tools to annotate and analyze annotation enrichment within sets of proteins or genes
+
+Installation
+---
+Install the package from the github repository using:
+```{r}
+devtools::install_github("VoisinneG/pannot")
+```
+
+Retrieve annotations from the enrichR database GO_Biological_Process_2018 for genes Itsn2 and Eps15l1
+
+```{r echo = FALSE, results = 'asis'}
+library(pannot)
+df <- get_annotations_enrichr(c("Itsn2","Eps15l1"))
+print(df)
+```

@@ -4,7 +4,7 @@ Version: 0.1.0
 Date: 2019-01-28
 Author: Guillaume Voisinne
 Maintainer: Guillaume Voisinne <voisinne@ciml.univ-mrs.fr>
-Description: The pannot package provides tools to annotate and analyze annotation enrichment within sets of proteins or genes
+Description: The pannot package provides tools to annotate and analyze annotation enrichment within sets of proteins or genes.
 Imports:
 	ggplot2, 
 	stringr,
