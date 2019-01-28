@@ -1,7 +1,7 @@
 ---
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 # pannot
 
@@ -18,12 +18,9 @@ Usage
 ---
 Retrieve annotations from the enrichR database "GO_Biological_Process_2018" for genes Itsn2 and Eps15l1
 
-```{r}
+```
 library(pannot)
 df <- get_annotations_enrichr(data = c("Itsn2","Eps15l1"), dbs = "GO_Biological_Process_2018")
+print(df)
 ```
 
-```{r}
-library(knitr)
-kable(df)
-```
