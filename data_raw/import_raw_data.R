@@ -56,7 +56,7 @@ uniprot_data_mouse <- read.table( paste("~/ownCloud/++Work/++Research/Resources-
 
 uniprot_data_human <- read.table( paste("~/ownCloud/++Work/++Research/Resources-Databases/",
                                         "Uniprot/uniprot-homo+sapiens+AND+reviewed.txt", sep=""),
-                                  sep="\t", header=TRUE, fill=TRUE, quote=c("\""),comment.char="")
+                                  sep="\t", header=TRUE, fill=TRUE, quote=c("\""), comment.char="")
 
 # import Reactome data ------------------------------------------------------------------------------------------
 

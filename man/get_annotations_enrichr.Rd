@@ -22,3 +22,7 @@ an annotated data.frame
 \description{
 Get annotations from an enrichR database for a set of genes.
 }
+\examples{
+df <- get_annotations_enrichr(c("Itsn2","Eps15l1"))
+print(df)
+}

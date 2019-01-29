@@ -262,10 +262,10 @@ annotation_enrichment_analysis <- function( df,
 #' @param dbs name of the enrichR database. Use \code{enrichR::listEnrichrDbs()} to see available databases.
 #' @param append_to_data logical, append annotations as a new column
 #' @return an annotated data.frame
-#' @import enrichR
-#' @example
+#' @examples
 #' df <- get_annotations_enrichr(c("Itsn2","Eps15l1"))
 #' print(df)
+#' @import enrichR
 #' @export
 get_annotations_enrichr <- function(data, name_id = "names", dbs = "GO_Biological_Process_2018", append_to_data = TRUE){
   #library(enrichR)
@@ -344,7 +344,7 @@ get_annotations_enrichr <- function(data, name_id = "names", dbs = "GO_Biologica
 #' @return an annotated data.frame
 #' @import utils
 #' @export
-get_annotations <- function( data, name_id = "Protein.IDs", split_param = ";", organism = "mouse", updateProgress = NULL ){
+get_annotations <- function(data, name_id = "Protein.IDs", split_param = ";", organism = "mouse", updateProgress = NULL ){
   # Get annotations from uniprot for a set of protein identifiers
   # From a set of IDs, keep the first that correspond to a "reviewed" protein, 
   # or by default the first ID of the set
