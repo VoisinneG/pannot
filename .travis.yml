@@ -1,0 +1,6 @@
+language: r
+r_packages: BiocInstaller 
+bioc_packages: 
+  - PSICQUIC
+use_bioc: true
+cache: packages
