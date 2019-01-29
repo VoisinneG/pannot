@@ -3,9 +3,9 @@
 #' @param df a data.frame with annotations corresponding to each row. Types of annotations are organized by columns. 
 #' For a given type of annotations, annotations are separated by \code{sep}.
 #' @param sep Character string separating different annotations of a given type
-#' @param idx_detect indexes of the foreground set.
-#' @param annotation_selected set of annotations on which to perform the analysis
-#' @param names row names. Used in the output data.frame
+#' @param idx_subset indexes of the foreground set.
+#' @param annotation_selected set of annotations on which to perform the analysis. Annotations selectd must be a subset of df's names.
+#' @param col_names df's column name containing gene names.
 #' @param organism organism for which the analysis is to be performed ("mouse" or "human")
 #' @param two_sided logical, perform a two-sided hypergeometric test
 #' @param updateProgress logical, function to show progress in shiny app
@@ -17,38 +17,21 @@
 #' @export
 annotation_enrichment_analysis <- function( df,
                                             sep = NULL,
-                                            idx_detect, 
-                                            annotation_selected = c("Keywords", "Protein.families") , 
-                                            names = df$Gene.names...primary.., 
+                                            idx_subset, 
+                                            annotation_selected = names(df)[2], 
+                                            col_names = names(df)[1], 
                                             organism = "mouse",
                                             two_sided = FALSE,
                                             updateProgress = NULL, 
                                             showProgress = TRUE,
                                             orderOutput = TRUE){
   # df : data frame with annotation data
-  # idx_detect : indices of the subset of proteins in df for which the enrichment analysis is performed
+  # idx_subset : indices of the subset of proteins in df for which the enrichment analysis is performed
   # (list of indices are supported. The output will then be a list of data-frames)
   # against the background formed by all proteins in df
   # annotation_selected : set of annotation terms to consider. 
   # Annotations supported are stored in varaiable "supported_annotations:
   
-  #supported_annotations <- c( 
-  # "Protein.families",  
-  # "Pfam", 
-  # "Keywords", 
-  # "Reactome", 
-  # "GO",
-  # "Hallmark",
-  # "KEGG",
-  # "GO_molecular_function",
-  # "GO_biological_process",
-  # "GO_cellular_component",
-  # "GOslim_molecular_function",
-  # "GOslim_biological_process",
-  # "GOslim_cellular_component",
-  # "Motif",
-  # "Kinase")
-  # 
   
   if( is.null(df) |  (sum(annotation_selected %in% names(df)) != length(annotation_selected)) ){
     stop("Annotations not available. Import annotations first.")
@@ -61,20 +44,6 @@ annotation_enrichment_analysis <- function( df,
   #list annotation terms found in the dataset ------------------------------------------------
   
   df_int <- df
-  
-  # if("Protein.families" %in% annotation_selected){
-  #   df_int[["Protein.families"]] <- as.character(df_int[["Protein.families"]])
-  #   for (i in 1:length(df_int[["Protein.families"]])){
-  #     s <- strsplit(df_int[["Protein.families"]][i], split=", ")[[1]]
-  #     s_develop <- s[1]
-  #     if (length(s) > 1) {
-  #       for (j in 2:length(s)){
-  #         s_develop <- c(s_develop, paste(s_develop[length(s_develop)], s[j], sep=", "))
-  #       }
-  #     }
-  #     df_int[["Protein.families"]][i] <- paste(s_develop, collapse="; ")
-  #   }
-  # }
   
   annot_terms <- NULL
   annot_type <- NULL
@@ -89,7 +58,10 @@ annotation_enrichment_analysis <- function( df,
   
   for (annot_type_sel in annotation_selected){
     
-    
+    df_int[[annot_type_sel]] <- gsub("(", "_", df_int[[annot_type_sel]], fixed = TRUE)
+    df_int[[annot_type_sel]] <- gsub(")", "_", df_int[[annot_type_sel]], fixed = TRUE)
+    df_int[[annot_type_sel]] <- gsub("[", "_", df_int[[annot_type_sel]], fixed = TRUE)
+    df_int[[annot_type_sel]] <- gsub("]", "_", df_int[[annot_type_sel]], fixed = TRUE)
     
     # if( annot_type_sel %in% c("Protein.families", "Keywords") ) collapse_sep <- "; "
     
@@ -98,26 +70,7 @@ annotation_enrichment_analysis <- function( df,
     terms <- unique(strsplit(u_annot, split = collapse_sep)[[1]])
     
     annot_names_int <- terms
-    # if(annot_type_sel == "Reactome"){
-    #   reactome <- switch(organism, "mouse" = reactome_mouse, "human" = reactome_human)
-    #   annot_names_int <- paste(
-    #                         reactome$Name[match(terms, reactome$ID)],
-    #                         ", [",
-    #                         reactome$ID[match(terms, reactome$ID)],
-    #                         "]",
-    #                         sep = "")
-    # }
-    # if(annot_type_sel == "Pfam"){
-    #   pfam <- switch(organism, "mouse" = pfam_mouse, "human" = pfam_human)
-    #   annot_names_int <- paste(
-    #                           pfam$hmm.name[match(terms, pfam$hmm.acc)],
-    #                           ", ",
-    #                           pfam$type[match(terms, pfam$hmm.acc)],
-    #                           ", [",
-    #                           pfam$hmm.acc[match(terms, pfam$hmm.acc)],
-    #                           "]",
-    #                           sep = "")
-    # }
+
     
     annot_terms <- c(annot_terms,  terms)
     annot_type <- c(annot_type, rep(annot_type_sel, length(terms)))
@@ -132,7 +85,7 @@ annotation_enrichment_analysis <- function( df,
   
   # Compute Background -------------------------------------------------------------------------------------
   
-  nodes_tot <- as.character(names);
+  nodes_tot <- as.character(df[[col_names]]);
   
   u_annot_nodes_collapse <- rep("", length(nodes_tot));
   idx_tot <- rep(0, length(nodes_tot));
@@ -140,7 +93,7 @@ annotation_enrichment_analysis <- function( df,
   for ( i in 1:length(nodes_tot) ){
     s <- NULL
     for (annot_type in annotation_selected) {
-      s <- c(s, as.character(df[[annot_type]][ i ]))
+      s <- c(s, as.character(df_int[[annot_type]][ i ]))
     }
     u_annot_nodes_collapse[i] <- paste(s, collapse = collapse_sep)
   }
@@ -153,12 +106,14 @@ annotation_enrichment_analysis <- function( df,
   freq_annot_background <- rep(0, n_annot);
   nodes_annot_background <- rep("", n_annot);
   
-  if (showProgress & typeof(idx_detect)!="list") pb <- txtProgressBar(min = 0, max = 2*n_annot, style = 3)
+  if (showProgress & typeof(idx_subset)!="list") pb <- txtProgressBar(min = 0, max = 2*n_annot, style = 3)
   count<-0
   
   for ( k in 1:dim(df.annot)[1] ){
     
-    idx_annot <- grep(paste("(",collapse_sep,"|^)", df.annot$annot_terms[k],"($|",collapse_sep,")",sep=""), 
+    annot <- df.annot$annot_terms[k]
+    
+    idx_annot <- grep(paste("(",collapse_sep,"|^)", annot, "($|",collapse_sep,")",sep=""), 
                       u_annot_nodes_collapse, fixed=FALSE)
 
     #idx_annot <- grep(df.annot$annot_terms[k], u_annot_nodes_collapse, fixed=TRUE)
@@ -168,7 +123,7 @@ annotation_enrichment_analysis <- function( df,
     freq_annot_background[k] = N_annot_background[k]/N_background;
     
     count <- count +1
-    if (showProgress & typeof(idx_detect)!="list") setTxtProgressBar(pb, count)
+    if (showProgress & typeof(idx_subset)!="list") setTxtProgressBar(pb, count)
     # progress bar
     if (is.function(updateProgress)) {
       text <- paste0( round(count/(2*n_annot)*100, 0), " %")
@@ -180,24 +135,24 @@ annotation_enrichment_analysis <- function( df,
   
   # Perform enrichment test for each annotation and each subset of indices ---------------------------------------
   
-  if (typeof(idx_detect)=="list"){
-    n_sets <- length(idx_detect)
+  if (typeof(idx_subset)=="list"){
+    n_sets <- length(idx_subset)
   } else {
     n_sets = 1
   }
   
   df.annot.tot <- list()
   
-  if (showProgress  & typeof(idx_detect)=="list") pb <- txtProgressBar(min = 0, max = n_sets, style = 3)
+  if (showProgress  & typeof(idx_subset)=="list") pb <- txtProgressBar(min = 0, max = n_sets, style = 3)
   
   for (i in 1:n_sets){
     
-    if (showProgress & typeof(idx_detect)=="list") setTxtProgressBar(pb, i)
+    if (showProgress & typeof(idx_subset)=="list") setTxtProgressBar(pb, i)
     
-    if (typeof(idx_detect)=="list"){
-      idx_d <- idx_detect[[i]]
+    if (typeof(idx_subset)=="list"){
+      idx_d <- idx_subset[[i]]
     } else {
-      idx_d <- idx_detect
+      idx_d <- idx_subset
     }
     
     N_annot <- rep(0, n_annot);
@@ -209,7 +164,9 @@ annotation_enrichment_analysis <- function( df,
     
     for( k in 1:n_annot ){
 
-      idx_annot <- idx_d[ grep(paste("(",collapse_sep,"|^)", df.annot$annot_terms[k], "($|",collapse_sep,")",sep=""), 
+      annot <- df.annot$annot_terms[k]
+      
+      idx_annot <- idx_d[ grep(paste("(",collapse_sep,"|^)", annot, "($|",collapse_sep,")",sep=""), 
                         u_annot_nodes_collapse[idx_d], fixed=FALSE) ]
       
       #idx_annot <- idx_d[ grep(df.annot$annot_terms[k], u_annot_nodes_collapse[idx_d],fixed=TRUE) ]
@@ -243,7 +200,7 @@ annotation_enrichment_analysis <- function( df,
       fold_change[k] = freq_annot[k]/freq_annot_background[k];
       
       count <- count +1
-      if (showProgress & typeof(idx_detect)!="list") setTxtProgressBar(pb, count)
+      if (showProgress & typeof(idx_subset)!="list") setTxtProgressBar(pb, count)
       # progress bar
       if (is.function(updateProgress)) {
         text <- paste0( round(count/(2*n_annot)*100, 0), " %")
@@ -251,7 +208,7 @@ annotation_enrichment_analysis <- function( df,
       }
     }
     
-    if (showProgress & typeof(idx_detect)!="list"){
+    if (showProgress & typeof(idx_subset)!="list"){
       close(pb)
       cat("Done.\n")
     }
@@ -287,9 +244,9 @@ annotation_enrichment_analysis <- function( df,
     
   }
   
-  if (showProgress & typeof(idx_detect)=="list") close(pb)
+  if (showProgress & typeof(idx_subset)=="list") close(pb)
   
-  if (typeof(idx_detect)=="list"){
+  if (typeof(idx_subset)=="list"){
     return(df.annot.tot)
   } else {
     return(df.annot.tot[[1]])
