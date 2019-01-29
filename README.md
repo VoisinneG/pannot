@@ -1,3 +1,5 @@
+[![Travis-CI Build Status](https://travis-ci.org/VoisinneG/InteRact.svg?branch=master)](https://travis-ci.org/VoisinneG/pannot) 
+
 # R Package : pannot
 
 The pannot package provides tools to annotate and analyze annotation enrichment within sets of proteins or genes
