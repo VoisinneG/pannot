@@ -59,9 +59,9 @@ annotation_enrichment_analysis <- function( df,
   for (annot_type_sel in annotation_selected){
     
     df_int[[annot_type_sel]] <- gsub("(", "_", df_int[[annot_type_sel]], fixed = TRUE)
-    df_int[[annot_type_sel]] <- gsub(")", "_", df_int[[annot_type_sel]], fixed = TRUE)
+    df_int[[annot_type_sel]] <- gsub(")", "!", df_int[[annot_type_sel]], fixed = TRUE)
     df_int[[annot_type_sel]] <- gsub("[", "_", df_int[[annot_type_sel]], fixed = TRUE)
-    df_int[[annot_type_sel]] <- gsub("]", "_", df_int[[annot_type_sel]], fixed = TRUE)
+    df_int[[annot_type_sel]] <- gsub("]", "!", df_int[[annot_type_sel]], fixed = TRUE)
     
     # if( annot_type_sel %in% c("Protein.families", "Keywords") ) collapse_sep <- "; "
     
@@ -81,6 +81,8 @@ annotation_enrichment_analysis <- function( df,
   df.annot <- data.frame(annot_terms = annot_terms, annot_type = annot_type, annot_names = annot_names)
   df.annot <- df.annot[which(df.annot$annot_terms != ""), ]
   
+  df.annot$annot_names <- gsub("_", "(", df.annot$annot_names, fixed = TRUE)
+  df.annot$annot_names <- gsub("!", ")", df.annot$annot_names, fixed = TRUE)
   
   
   # Compute Background -------------------------------------------------------------------------------------
@@ -877,5 +879,124 @@ append_PPI <- function( res, mapping = "names", df_summary = NULL){
   res_int$Database <- Database
   
   return(res_int)
+  
+}
+
+
+
+#' Plot the result of the annotation enrichment analysis
+#' @param df a formatted data.frame obtained by the function \code{annotation_enrichment_analysis()}
+#' @param p_val_max threshold for the enrichment p-value
+#' @param method_adjust_p_val method to adjust p-value for multiple comparisons
+#' @param fold_change_min threshold for the enrichment fold-change
+#' @param N_annot_min minimum number of elements that are annotated in the foreground set
+#' @param test_depletion logical, test for annotation depletion as well as enrichment
+#' @return a data.frame
+#' @export
+filter_annotation_results <- function(df, 
+                                      p_val_max=0.05, 
+                                      method_adjust_p_val = "fdr", 
+                                      fold_change_min =2,
+                                      N_annot_min=2, 
+                                      test_depletion = FALSE
+                                      ){
+  
+  if(length(df) == 0 ){
+    warning("Empty input...")
+  }else if( dim(df)[1] == 0){
+    warning("Empty input...")
+  }
+  
+  name_p_val <- switch(method_adjust_p_val,
+                       "none" = "p_value",
+                       "fdr" = "p_value_adjust_fdr",
+                       "bonferroni" = "p_value_adjust_bonferroni")
+  
+  df$p_value_adjusted <- df[[name_p_val]]
+  
+  
+  if(test_depletion){
+    idx_filter <-  which(df$p_value_adjusted <= p_val_max & 
+                           (df$fold_change >= fold_change_min | df$fold_change <= 1/fold_change_min) & 
+                           df$N_annot >= N_annot_min)
+  } else {
+    idx_filter <-  which(df$p_value_adjusted <= p_val_max & 
+                           df$fold_change >= fold_change_min & 
+                           df$N_annot >= N_annot_min)
+  }
+  
+  
+  
+  if(length(idx_filter) == 0){
+    warning("No annotation left after filtering. You might want to change input parameters")
+    return(NULL)
+  }
+  df_filter <- df[ idx_filter, ]
+  
+  return(df_filter)
+}
+
+
+#' Plot the result of the annotation enrichment analysis
+#' @param df a formatted data.frame obtained by the function \code{annotation_enrichment_analysis()}
+#' @param var_p_val name of the p-value variable
+#' @param fold_change_max_plot maximal fold-change displayed
+#' @param save_file path where the plot will be saved
+#' @param ... parameters passed to function \code{filter_annotation_results}
+#' @import ggplot2
+#' @importFrom grDevices dev.off pdf
+#' @return a plot
+#' @export
+plot_annotation_results <- function(df,
+                                    var_p_val = "fdr",
+                                    fold_change_max_plot = 4,
+                                    save_file = NULL,
+                                    ...){
+  
+  if(length(df) == 0 ){
+    warning("Empty input...")
+  }else if( dim(df)[1] == 0){
+    warning("Empty input...")
+  }
+  
+  name_p_val <- switch(var_p_val,
+                       "none" = "p_value",
+                       "fdr" = "p_value_adjust_fdr",
+                       "bonferroni" = "p_value_adjust_bonferroni")
+  
+  df$p_value_adjusted <- df[[name_p_val]]
+  
+  df_filter <- df
+  df_filter$fold_change_sign <- df_filter$fold_change
+  df_filter$fold_change_sign[df_filter$fold_change>=1] <- 1
+  df_filter$fold_change_sign[df_filter$fold_change<1] <- -1
+  
+  df_filter <- df_filter[ order(df_filter$fold_change_sign * (-log10(df_filter$p_value)), decreasing = FALSE), ]
+  #df_filter <- df_filter[ order(df_filter$p_value, decreasing = TRUE), ]
+  df_filter$order <- 1:dim(df_filter)[1]
+  df_filter$fold_change[df_filter$fold_change >= fold_change_max_plot] <- fold_change_max_plot
+  df_filter$fold_change[df_filter$fold_change <= 1/fold_change_max_plot] <- 1/fold_change_max_plot
+  
+  p <- ggplot( df_filter, aes(x=order, y=-log10(p_value_adjusted) , fill = log2(fold_change))) + 
+    theme(
+      axis.text.y = element_text(size=12),
+      axis.text.x = element_text(size=12, angle = 90, hjust = 1,vjust=0.5),
+      axis.title.x = element_text(size=10)
+    ) +
+    scale_x_continuous(name = NULL, breaks=df_filter$order, labels=df_filter$annot_names) +
+    scale_y_continuous(name = paste("-log10(",name_p_val,")",sep="")) +
+    scale_fill_distiller(palette = "RdBu", limits = c(-log2(fold_change_max_plot), log2(fold_change_max_plot))) + 
+    geom_col(...)+
+    coord_flip()
+  
+  if(!is.null(save_file)){
+    plot_width <- 0.1*( 0.5*max( sapply(as.character(df_filter$annot_terms), nchar) ) + 35 )
+    plot_height <- 0.1*(1.5*length(unique(df_filter$annot_terms)) + 20)
+    pdf(save_file, plot_width, plot_height)
+    print(p)
+    dev.off()
+  }
+  
+  return(p)
   
 }
