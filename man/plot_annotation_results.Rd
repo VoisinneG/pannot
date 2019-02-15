@@ -4,13 +4,13 @@
 \alias{plot_annotation_results}
 \title{Plot the result of the annotation enrichment analysis}
 \usage{
-plot_annotation_results(df, var_p_val = "fdr",
+plot_annotation_results(df, method_adjust_p_val = "fdr",
   fold_change_max_plot = 4, save_file = NULL, ...)
 }
 \arguments{
 \item{df}{a formatted data.frame obtained by the function \code{annotation_enrichment_analysis()}}
 
-\item{var_p_val}{name of the p-value variable}
+\item{method_adjust_p_val}{name of the p-value variable}
 
 \item{fold_change_max_plot}{maximal fold-change displayed}
 
