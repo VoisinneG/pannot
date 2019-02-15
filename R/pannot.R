@@ -939,7 +939,7 @@ filter_annotation_results <- function(df,
 
 #' Plot the result of the annotation enrichment analysis
 #' @param df a formatted data.frame obtained by the function \code{annotation_enrichment_analysis()}
-#' @param var_p_val name of the p-value variable
+#' @param method_adjust_p_val name of the p-value variable
 #' @param fold_change_max_plot maximal fold-change displayed
 #' @param save_file path where the plot will be saved
 #' @param ... parameters passed to function \code{filter_annotation_results}
@@ -948,7 +948,7 @@ filter_annotation_results <- function(df,
 #' @return a plot
 #' @export
 plot_annotation_results <- function(df,
-                                    var_p_val = "fdr",
+                                    method_adjust_p_val = "fdr",
                                     fold_change_max_plot = 4,
                                     save_file = NULL,
                                     ...){
@@ -959,14 +959,20 @@ plot_annotation_results <- function(df,
     warning("Empty input...")
   }
   
-  name_p_val <- switch(var_p_val,
+  name_p_val <- switch(method_adjust_p_val,
                        "none" = "p_value",
                        "fdr" = "p_value_adjust_fdr",
                        "bonferroni" = "p_value_adjust_bonferroni")
+  # 
+  # df$p_value_adjusted <- df[[name_p_val]]
   
-  df$p_value_adjusted <- df[[name_p_val]]
+  df_filter <- filter_annotation_results(df, method_adjust_p_val = method_adjust_p_val, ...)
   
-  df_filter <- df
+  if(length(df_filter$fold_change) == 0){
+    warning("No annotation left after filtering. You might want to change input parameters")
+    return(NULL)
+  }
+  
   df_filter$fold_change_sign <- df_filter$fold_change
   df_filter$fold_change_sign[df_filter$fold_change>=1] <- 1
   df_filter$fold_change_sign[df_filter$fold_change<1] <- -1
