@@ -1,4 +1,4 @@
-[![Travis-CI Build Status](https://travis-ci.org/VoisinneG/InteRact.svg?branch=master)](https://travis-ci.org/VoisinneG/pannot) 
+[![Travis-CI Build Status](https://travis-ci.org/VoisinneG/pannot.svg?branch=master)](https://travis-ci.org/VoisinneG/pannot) 
 
 # R Package : pannot
 
