@@ -560,6 +560,7 @@ add_Hallmark_data <- function(df, map_id="Gene.names...primary..", updateProgres
 #' @param tax_ID taxon ID for which to retrieve PPI
 #' @param provider database from which to retrieve PPI
 #' @return a data.frame PPI information
+#' @import stringi
 #' @import PSICQUIC
 #' @export
 get_PPI_from_psicquic <- function( gene_name, tax_ID = c(9606,10090) , provider = c("IntAct","MINT") ){
@@ -653,14 +654,20 @@ get_PPI_from_psicquic <- function( gene_name, tax_ID = c(9606,10090) , provider 
     if(k>1){
       #df2<-data.frame(gene_name_A, gene_name_B, uniprot_A, uniprot_B, taxon, Int_type, Detection_method, Author=Author, pubmed_ID=pubmed_ID, Database=tbl$provider)
       df2<-data.frame(gene_name_A, gene_name_B, taxon, Int_type, 
-                      Detection_method, Author=Author, Pubmed_ID=Pubmed_ID, Database=tbl$provider)
+                      Detection_method, 
+                      Author=stringi::stri_trans_general(Author, "latin-ascii"), 
+                      Pubmed_ID=Pubmed_ID, 
+                      Database=tbl$provider)
       df1<-rbind(df1,df2);
       
     }
     else{
       #df1<-data.frame(gene_name_A, gene_name_B, uniprot_A, uniprot_B, taxon, Int_type, Detection_method, Author=Author, pubmed_ID=pubmed_ID, Database=tbl$provider)
       df1<-data.frame(gene_name_A, gene_name_B, taxon, Int_type, 
-                      Detection_method, Author=Author, Pubmed_ID=Pubmed_ID, Database=tbl$provider)
+                      Detection_method, 
+                      Author=stringi::stri_trans_general(Author, "latin-ascii"), 
+                      Pubmed_ID=Pubmed_ID, 
+                      Database=tbl$provider)
       
     }
     
@@ -675,6 +682,7 @@ get_PPI_from_psicquic <- function( gene_name, tax_ID = c(9606,10090) , provider 
 #' @param gene_name the gene name for which to retrieve PPI
 #' @param tax_ID taxon ID for which to retrieve PPI
 #' @return a data.frame PPI information
+#' @import stringi
 #' @export
 get_PPI_from_BioGRID <- function( gene_name, tax_ID = c(9606,10090) ){
   
@@ -710,7 +718,7 @@ get_PPI_from_BioGRID <- function( gene_name, tax_ID = c(9606,10090) ){
                                  taxon=taxon_biogrid, 
                                  Int_type=Tbiogrid$Experimental.System.Type, 
                                  Detection_method=Tbiogrid$Experimental.System, 
-                                 Author=Author_Biogrid, 
+                                 Author=stringi::stri_trans_general(Author_Biogrid, "latin-ascii"), 
                                  Pubmed_ID=Tbiogrid$Pubmed.ID,  
                                  Database=Tbiogrid$Source.Database )
       df_biogrid_1 <- rbind(df_biogrid_1,df_biogrid_2);
@@ -720,8 +728,8 @@ get_PPI_from_BioGRID <- function( gene_name, tax_ID = c(9606,10090) ){
                                  gene_name_B = Tbiogrid$Official.Symbol.Interactor.B, 
                                  taxon=taxon_biogrid, 
                                  Int_type=Tbiogrid$Experimental.System.Type, 
-                                 Detection_method=Tbiogrid$Experimental.System, 
-                                 Author=Author_Biogrid, 
+                                 Detection_method=Tbiogrid$Experimental.System,
+                                 Author=stringi::stri_trans_general(Author_Biogrid, "latin-ascii"), 
                                  Pubmed_ID=Tbiogrid$Pubmed.ID,  
                                  Database=Tbiogrid$Source.Database )
       

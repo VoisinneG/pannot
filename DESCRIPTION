@@ -8,6 +8,7 @@ Description: The pannot package provides tools to annotate and analyze annotatio
 Imports:
 	ggplot2, 
 	stringr,
+	stringi,
 	enrichR,
 	BiocInstaller,
 	PSICQUIC
@@ -16,4 +17,5 @@ LazyData: TRUE
 License: file LICENSE
 RoxygenNote: 6.1.0
 Depends:
+  S4Vectors,
   R (>= 2.10)
