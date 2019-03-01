@@ -561,6 +561,7 @@ add_Hallmark_data <- function(df, map_id="Gene.names...primary..", updateProgres
 #' @param provider database from which to retrieve PPI
 #' @return a data.frame PPI information
 #' @import PSICQUIC
+#' @export
 get_PPI_from_psicquic <- function( gene_name, tax_ID = c(9606,10090) , provider = c("IntAct","MINT") ){
   
   psicquic <- PSICQUIC::PSICQUIC()
@@ -674,6 +675,7 @@ get_PPI_from_psicquic <- function( gene_name, tax_ID = c(9606,10090) , provider 
 #' @param gene_name the gene name for which to retrieve PPI
 #' @param tax_ID taxon ID for which to retrieve PPI
 #' @return a data.frame PPI information
+#' @export
 get_PPI_from_BioGRID <- function( gene_name, tax_ID = c(9606,10090) ){
   
   access_key <- "7ad36061b7644111aa9f5b3948429fb2"
@@ -733,6 +735,7 @@ get_PPI_from_BioGRID <- function( gene_name, tax_ID = c(9606,10090) ){
 
 #' Retrieve protein-protein interaction information from HPRD
 #' @param gene_name the gene name for which to retrieve PPI
+#' @export
 get_PPI_from_HPRD <- function( gene_name ){
   
   THPRD <- THPRD[which(THPRD$Gene_symbol_1 == toupper(gene_name) | THPRD$Gene_symbol_2 == toupper(gene_name)), ]
