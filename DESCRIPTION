@@ -8,7 +8,6 @@ Description: The pannot package provides tools to annotate and analyze annotatio
 Imports:
 	ggplot2, 
 	stringr,
-	stringi,
 	enrichR,
 	BiocInstaller,
 	PSICQUIC
