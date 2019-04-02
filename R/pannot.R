@@ -1,11 +1,45 @@
 #' Create a data.frame with UniProt annotations corrresponding to a set of UniProt IDs
-#'
-#' @param ... Parameters passed to \code{queryup::get_annotations()}
+#' @param id Character vector with UniProt IDs
+#' @param columns names of uniprot data columns to retrieve. Examples include "id",
+#' "genes", "keywords", "sequence", "go" (use \code{list_data_columns()} to see the full list)
+#' @param max_keys maximum number of field items submitted
+#' @param updateProgress used to display progress in shiny apps
+#' @param show_progress Show progress bar
+#' @importFrom queryup query_uniprot
 #' @return a data.frame
-#' @importFrom queryup get_annotations
+#' @examples
+#' id <- c("P26450", "O00459")
+#' df <-  get_annotations_uniprot(id = id)
 #' @export
-get_annotations_uniprot <- function(...){
-  return( queryup::get_annotations(...) )
+get_annotations_uniprot <- function(id,
+                            columns = c("genes", "keywords", "families", "go") ,
+                            max_keys = 400,
+                            updateProgress = NULL,
+                            show_progress = TRUE){
+  
+  idx <- which(!is.na(id))
+  
+  query <- list("id" = id[idx])
+  columns <- union("id", columns)
+  
+  df_annot <- tryCatch({
+    
+    query_uniprot(query = query,
+                  columns = columns,
+                  max_keys = max_keys,
+                  updateProgress = updateProgress,
+                  show_progress = show_progress)
+    
+  }, error = function(err){
+    warning("Query failed. Please retry later.")
+    NULL
+  })
+  
+  if(is.null(df_annot)) return(NULL)
+  
+  idx_match <- match(id, df_annot$Entry)
+  df <- data.frame(id = id, df_annot[idx_match, ])
+  return(df)
 }
 
 #' Get annotations using enrichR
@@ -81,282 +115,23 @@ get_annotations_enrichr <- function(data, name_id = "names", dbs = "GO_Biologica
   
 }
 
-#' Perform enrichment analysis
-#' @description Perform enrichment analysis using a hypergeometric test for protein annotations stored in a formatted data.frame
-#' @param df a data.frame with annotations corresponding to each row. Types of annotations are organized by columns. 
-#' For a given type of annotations, annotations are separated by \code{sep}.
-#' @param sep Character string separating different annotations of a given type
-#' @param idx_subset indexes of the foreground set.
-#' @param annotation_selected set of annotations on which to perform the analysis. Annotations selectd must be a subset of df's names.
-#' @param col_names df's column name containing gene names.
-#' @param organism organism for which the analysis is to be performed ("mouse" or "human")
-#' @param two_sided logical, perform a two-sided hypergeometric test
-#' @param updateProgress logical, function to show progress in shiny app
-#' @param showProgress logical, show progress in console
-#' @param orderOutput logical, order annotations by enrichment p-values in the output data.frame
-#' @return a data.frame
-#' @import utils
-#' @importFrom stats phyper p.adjust
-#' @export
-annotation_enrichment_analysis <- function( df,
-                                            sep = NULL,
-                                            idx_subset, 
-                                            annotation_selected = names(df)[2], 
-                                            col_names = names(df)[1], 
-                                            organism = "mouse",
-                                            two_sided = FALSE,
-                                            updateProgress = NULL, 
-                                            showProgress = TRUE,
-                                            orderOutput = TRUE){
-  # df : data frame with annotation data
-  # idx_subset : indices of the subset of proteins in df for which the enrichment analysis is performed
-  # (list of indices are supported. The output will then be a list of data-frames)
-  # against the background formed by all proteins in df
-  # annotation_selected : set of annotation terms to consider. 
-  # Annotations supported are stored in varaiable "supported_annotations:
-  
-  
-  if( is.null(df) |  (sum(annotation_selected %in% names(df)) != length(annotation_selected)) ){
-    stop("Annotations not available. Import annotations first.")
-  }else if ( length(annotation_selected) == 0) {
-    stop("No annotations selected. Change selected annotations")
-  }
-  
-  if (showProgress) cat("Perform annotation enrichment analysis...\n")
-  
-  #list annotation terms found in the dataset ------------------------------------------------
-  
-  df_int <- df
-  
-  annot_terms <- NULL
-  annot_type <- NULL
-  annot_names <- NULL
-  
-  if(is.null(sep)){
-    warning("No separation character provided. Using ';' by default")
-    collapse_sep <- ";"
-  }else{
-    collapse_sep <- sep
-  }
-  
-  for (annot_type_sel in annotation_selected){
-    
-    df_int[[annot_type_sel]] <- gsub("(", "_", df_int[[annot_type_sel]], fixed = TRUE)
-    df_int[[annot_type_sel]] <- gsub(")", "!", df_int[[annot_type_sel]], fixed = TRUE)
-    df_int[[annot_type_sel]] <- gsub("[", "_", df_int[[annot_type_sel]], fixed = TRUE)
-    df_int[[annot_type_sel]] <- gsub("]", "!", df_int[[annot_type_sel]], fixed = TRUE)
-    
-    # if( annot_type_sel %in% c("Protein.families", "Keywords") ) collapse_sep <- "; "
-    
-    
-    u_annot<-paste(unique(df_int[[annot_type_sel]]), collapse = collapse_sep)
-    terms <- unique(strsplit(u_annot, split = collapse_sep)[[1]])
-    
-    annot_names_int <- terms
-
-    
-    annot_terms <- c(annot_terms,  terms)
-    annot_type <- c(annot_type, rep(annot_type_sel, length(terms)))
-    annot_names <- c(annot_names, annot_names_int)
-    
-  }
-  
-  df.annot <- data.frame(annot_terms = annot_terms, annot_type = annot_type, annot_names = annot_names)
-  df.annot <- df.annot[which(df.annot$annot_terms != ""), ]
-  
-  df.annot$annot_names <- gsub("_", "(", df.annot$annot_names, fixed = TRUE)
-  df.annot$annot_names <- gsub("!", ")", df.annot$annot_names, fixed = TRUE)
-  
-  
-  # Compute Background -------------------------------------------------------------------------------------
-  
-  nodes_tot <- as.character(df[[col_names]]);
-  
-  u_annot_nodes_collapse <- rep("", length(nodes_tot));
-  idx_tot <- rep(0, length(nodes_tot));
-  
-  for ( i in 1:length(nodes_tot) ){
-    s <- NULL
-    for (annot_type in annotation_selected) {
-      s <- c(s, as.character(df_int[[annot_type]][ i ]))
-    }
-    u_annot_nodes_collapse[i] <- paste(s, collapse = collapse_sep)
-  }
-  
-  N_background = length(nodes_tot);
-  
-  n_annot <- dim(df.annot)[1]
-  
-  N_annot_background <- rep(0, n_annot);
-  freq_annot_background <- rep(0, n_annot);
-  nodes_annot_background <- rep("", n_annot);
-  
-  if (showProgress & typeof(idx_subset)!="list") pb <- txtProgressBar(min = 0, max = 2*n_annot, style = 3)
-  count<-0
-  
-  for ( k in 1:dim(df.annot)[1] ){
-    
-    annot <- df.annot$annot_terms[k]
-    
-    idx_annot <- grep(paste("(",collapse_sep,"|^)", annot, "($|",collapse_sep,")",sep=""), 
-                      u_annot_nodes_collapse, fixed=FALSE)
-
-    #idx_annot <- grep(df.annot$annot_terms[k], u_annot_nodes_collapse, fixed=TRUE)
-    
-    N_annot_background[k] = length(idx_annot);
-    nodes_annot_background[k] = paste(nodes_tot[idx_annot], collapse=";")
-    freq_annot_background[k] = N_annot_background[k]/N_background;
-    
-    count <- count +1
-    if (showProgress & typeof(idx_subset)!="list") setTxtProgressBar(pb, count)
-    # progress bar
-    if (is.function(updateProgress)) {
-      text <- paste0( round(count/(2*n_annot)*100, 0), " %")
-      updateProgress(value = count/(2*n_annot)*100, detail = text)
-    }
-  }
-  
-  N_annotation_test <- length(which(N_annot_background>0))
-  
-  # Perform enrichment test for each annotation and each subset of indices ---------------------------------------
-  
-  if (typeof(idx_subset)=="list"){
-    n_sets <- length(idx_subset)
-  } else {
-    n_sets = 1
-  }
-  
-  df.annot.tot <- list()
-  
-  if (showProgress  & typeof(idx_subset)=="list") pb <- txtProgressBar(min = 0, max = n_sets, style = 3)
-  
-  for (i in 1:n_sets){
-    
-    if (showProgress & typeof(idx_subset)=="list") setTxtProgressBar(pb, i)
-    
-    if (typeof(idx_subset)=="list"){
-      idx_d <- idx_subset[[i]]
-    } else {
-      idx_d <- idx_subset
-    }
-    
-    N_annot <- rep(0, n_annot);
-    freq_annot <- rep(0, n_annot);
-    nodes_annot <- rep("", n_annot);
-    p_value <- rep(0, n_annot);
-    fold_change <- rep(0, n_annot);
-    p_value_adjust <- rep(0, n_annot);
-    
-    for( k in 1:n_annot ){
-
-      annot <- df.annot$annot_terms[k]
-      
-      idx_annot <- idx_d[ grep(paste("(",collapse_sep,"|^)", annot, "($|",collapse_sep,")",sep=""), 
-                        u_annot_nodes_collapse[idx_d], fixed=FALSE) ]
-      
-      #idx_annot <- idx_d[ grep(df.annot$annot_terms[k], u_annot_nodes_collapse[idx_d],fixed=TRUE) ]
-      
-      N_annot[k]=length(idx_annot);
-      N_sample = length(idx_d);
-      
-      freq_annot[k] = N_annot[k]/N_sample;
-      nodes_annot[k]=paste(nodes_tot[idx_annot], collapse=";")
-      
-      inclusive_upper_tail <- 1-phyper(N_annot[k]-1,
-                                       N_annot_background[k],
-                                       N_background-N_annot_background[k],  
-                                       N_sample)
-      
-      inclusive_lower_tail <- phyper(N_annot[k],
-                                       N_annot_background[k],  
-                                       N_background-N_annot_background[k],  
-                                       N_sample)
-      
-      two_sided_hypergeometric_p_value <- 2.0*min(c(inclusive_upper_tail, inclusive_lower_tail))
-     
-      
-      if(two_sided){
-        p_value[k] = two_sided_hypergeometric_p_value
-      }else{
-        p_value[k] = inclusive_upper_tail
-      }
-      
-      
-      fold_change[k] = freq_annot[k]/freq_annot_background[k];
-      
-      count <- count +1
-      if (showProgress & typeof(idx_subset)!="list") setTxtProgressBar(pb, count)
-      # progress bar
-      if (is.function(updateProgress)) {
-        text <- paste0( round(count/(2*n_annot)*100, 0), " %")
-        updateProgress(value = count/(2*n_annot)*100, detail = text)
-      }
-    }
-    
-    if (showProgress & typeof(idx_subset)!="list"){
-      close(pb)
-      cat("Done.\n")
-    }
-    
-    if(two_sided){
-      idx_annot_exist <-  which(N_annot_background>0)
-    }else{
-      idx_annot_exist <-  which(N_annot>0)
-    }
-    
-    p_value_adjust_fdr <- rep( 1,length(p_value) );
-    p_value_adjust_bonferroni <- rep( 1,length(p_value) );
-    p_value_adjust_bonferroni[idx_annot_exist] <- p.adjust(p_value[idx_annot_exist], method = "bonferroni");
-    p_value_adjust_fdr[idx_annot_exist] <- p.adjust(p_value[idx_annot_exist], method = "fdr");
-    
-    df.annot.set <- data.frame(
-      N_annot,
-      freq_annot,
-      fold_change, 
-      p_value, 
-      p_value_adjust_fdr,
-      nodes_annot,
-      p_value_adjust_bonferroni,
-      N_annot_background, 
-      freq_annot_background,
-      nodes_annot_background)
-    
-    df.annot.set <- cbind(df.annot, df.annot.set)
-    
-    if (orderOutput) df.annot.set <- df.annot.set[ order(df.annot.set$p_value, decreasing = FALSE), ]
-    
-    df.annot.tot[[i]] <- df.annot.set
-    
-  }
-  
-  if (showProgress & typeof(idx_subset)=="list") close(pb)
-  
-  if (typeof(idx_subset)=="list"){
-    return(df.annot.tot)
-  } else {
-    return(df.annot.tot[[1]])
-  }
-  
-}
-
-
-
 #' Retrieve protein-protein interaction information using PSICQUIC
 #' @param gene_name the gene name for which to retrieve PPI
-#' @param tax_ID taxon ID for which to retrieve PPI
+#' @param taxon_ID taxon ID for which to retrieve PPI
 #' @param provider database from which to retrieve PPI
 #' @return a data.frame PPI information
+#' @import S4Vectors
 #' @import PSICQUIC
 #' @export
-get_PPI_from_psicquic <- function( gene_name, tax_ID = c(9606,10090) , provider = c("IntAct","MINT") ){
+get_PPI_from_psicquic <- function( gene_name, taxon_ID = c(9606,10090) , provider = c("IntAct","MINT") ){
   
   psicquic <- PSICQUIC::PSICQUIC()
   
-  for (k in 1:length(tax_ID) ){
+  for (k in 1:length(taxon_ID) ){
     
     tbl <- PSICQUIC::interactions(psicquic, 
                                   gene_name, 
-                                  species = tax_ID[k] , 
+                                  species = taxon_ID[k] , 
                                   provider = provider )
     
     
@@ -435,7 +210,7 @@ get_PPI_from_psicquic <- function( gene_name, tax_ID = c(9606,10090) , provider 
     }
     
     Encoding( Author ) <- "latin1"
-    taxon<-rep(tax_ID[k],length(s) );
+    taxon<-rep(taxon_ID[k],length(s) );
     
     if(k>1){
       #df2<-data.frame(gene_name_A, gene_name_B, uniprot_A, uniprot_B, taxon, Int_type, Detection_method, Author=Author, pubmed_ID=pubmed_ID, Database=tbl$provider)
@@ -466,25 +241,26 @@ get_PPI_from_psicquic <- function( gene_name, tax_ID = c(9606,10090) , provider 
 
 #' Retrieve protein-protein interaction information from BioGRID
 #' @param gene_name the gene name for which to retrieve PPI
-#' @param tax_ID taxon ID for which to retrieve PPI
+#' @param taxon_ID taxon ID for which to retrieve PPI
 #' @return a data.frame PPI information
+#' @importFrom utils read.table
 #' @export
-get_PPI_from_BioGRID <- function( gene_name, tax_ID = c(9606,10090) ){
+get_PPI_from_BioGRID <- function( gene_name, taxon_ID = c(9606,10090) ){
   
   access_key <- "7ad36061b7644111aa9f5b3948429fb2"
   
-  for (k in 1:length(tax_ID) ){
+  for (k in 1:length(taxon_ID) ){
     
     url_adress <- paste("http://webservice.thebiogrid.org/interactions?searchNames=true&geneList=",
                         gene_name,"&includeInteractors=true&format=tab2&includeHeader=true&taxId=",
-                        tax_ID[k],"&accesskey=",
+                        taxon_ID[k],"&accesskey=",
                         access_key,sep="");
     
-    Tbiogrid <- read.table(url_adress,header=TRUE,fill=TRUE,sep="\t",comment.char="", quote="\"")
+    Tbiogrid <- utils::read.table(url_adress, header=TRUE, fill=TRUE, sep="\t", comment.char="", quote="\"")
     
     Tbiogrid <- Tbiogrid[Tbiogrid$Organism.Interactor.A == Tbiogrid$Organism.Interactor.B,]
     
-    taxon_biogrid <- rep(tax_ID[k],dim(Tbiogrid)[1] );  
+    taxon_biogrid <- rep(taxon_ID[k],dim(Tbiogrid)[1] );  
     
     s<-strsplit(as.character(Tbiogrid$Author),split = " ",fixed=TRUE)
     Author_Biogrid <- rep("",length(s))
@@ -550,19 +326,19 @@ get_PPI_from_HPRD <- function( gene_name ){
 #' IntAct, MINT, BioGRID and HPRD
 #' @param gene_name the gene name for which to retrieve PPI
 #' @return a data.frame PPI information
-#' @import utils
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #' @export
 create_summary_table_PPI <- function(gene_name){
   
   cat("Fetching PPi from databases...\n")
-  pb <- txtProgressBar(min = 0, max = 3, style = 3)
+  pb <- utils::txtProgressBar(min = 0, max = 3, style = 3)
   
   df_psicquic <- try(get_PPI_from_psicquic(gene_name = gene_name), silent = FALSE)
-  setTxtProgressBar(pb, 1)
+  utils::setTxtProgressBar(pb, 1)
   df_biogrid <- get_PPI_from_BioGRID(gene_name = gene_name)
-  setTxtProgressBar(pb, 2)
+  utils::setTxtProgressBar(pb, 2)
   df_HPRD <- get_PPI_from_HPRD(gene_name = gene_name)
-  setTxtProgressBar(pb, 3)
+  utils::setTxtProgressBar(pb, 3)
   close(pb)
   
   df_tot <- rbind(df_biogrid, df_psicquic, df_HPRD)
@@ -609,6 +385,261 @@ create_summary_table_PPI <- function(gene_name){
 }
 
 
+#' Perform enrichment analysis
+#' @description Perform enrichment analysis using a hypergeometric test for protein annotations stored in a formatted data.frame
+#' @param df a data.frame with annotations corresponding to each row. Types of annotations are organized by columns. 
+#' For a given type of annotations, annotations are separated by \code{sep}.
+#' @param sep Character string separating different annotations of a given type
+#' @param idx_subset indexes of the foreground set.
+#' @param annotation_selected set of annotations on which to perform the analysis. Annotations selectd must be a subset of df's names.
+#' @param col_names df's column name containing gene names.
+#' @param two_sided logical, perform a two-sided hypergeometric test
+#' @param updateProgress logical, function to show progress in shiny app
+#' @param showProgress logical, show progress in console
+#' @param orderOutput logical, order annotations by enrichment p-values in the output data.frame
+#' @return a data.frame
+#' @importFrom utils setTxtProgressBar txtProgressBar
+#' @importFrom stats phyper p.adjust
+#' @export
+annotation_enrichment_analysis <- function( df,
+                                            sep = NULL,
+                                            idx_subset, 
+                                            annotation_selected = names(df)[2], 
+                                            col_names = names(df)[1], 
+                                            two_sided = FALSE,
+                                            updateProgress = NULL, 
+                                            showProgress = TRUE,
+                                            orderOutput = TRUE){
+  
+  
+  if( is.null(df) |  (sum(annotation_selected %in% names(df)) != length(annotation_selected)) ){
+    stop("Annotations not available. Import annotations first.")
+  }else if ( length(annotation_selected) == 0) {
+    stop("No annotations selected. Change selected annotations")
+  }
+  
+  if (showProgress) cat("Perform annotation enrichment analysis...\n")
+  
+  #list annotation terms found in the dataset ------------------------------------------------
+  
+  df_int <- df
+  
+  annot_terms <- NULL
+  annot_type <- NULL
+  annot_names <- NULL
+  
+  if(is.null(sep)){
+    warning("No separation character provided. Using ';' by default")
+    collapse_sep <- ";"
+  }else{
+    collapse_sep <- sep
+  }
+  
+  for (annot_type_sel in annotation_selected){
+    
+    df_int[[annot_type_sel]] <- gsub("(", "_", df_int[[annot_type_sel]], fixed = TRUE)
+    df_int[[annot_type_sel]] <- gsub(")", "!", df_int[[annot_type_sel]], fixed = TRUE)
+    df_int[[annot_type_sel]] <- gsub("[", "_", df_int[[annot_type_sel]], fixed = TRUE)
+    df_int[[annot_type_sel]] <- gsub("]", "!", df_int[[annot_type_sel]], fixed = TRUE)
+    
+    # if( annot_type_sel %in% c("Protein.families", "Keywords") ) collapse_sep <- "; "
+    
+    
+    u_annot<-paste(unique(df_int[[annot_type_sel]]), collapse = collapse_sep)
+    terms <- unique(strsplit(u_annot, split = collapse_sep)[[1]])
+    
+    annot_names_int <- terms
+    
+    
+    annot_terms <- c(annot_terms,  terms)
+    annot_type <- c(annot_type, rep(annot_type_sel, length(terms)))
+    annot_names <- c(annot_names, annot_names_int)
+    
+  }
+  
+  df.annot <- data.frame(annot_terms = annot_terms, annot_type = annot_type, annot_names = annot_names)
+  df.annot <- df.annot[which(df.annot$annot_terms != ""), ]
+  
+  df.annot$annot_names <- gsub("_", "(", df.annot$annot_names, fixed = TRUE)
+  df.annot$annot_names <- gsub("!", ")", df.annot$annot_names, fixed = TRUE)
+  
+  
+  # Compute Background -------------------------------------------------------------------------------------
+  
+  nodes_tot <- as.character(df[[col_names]]);
+  
+  u_annot_nodes_collapse <- rep("", length(nodes_tot));
+  idx_tot <- rep(0, length(nodes_tot));
+  
+  for ( i in 1:length(nodes_tot) ){
+    s <- NULL
+    for (annot_type in annotation_selected) {
+      s <- c(s, as.character(df_int[[annot_type]][ i ]))
+    }
+    u_annot_nodes_collapse[i] <- paste(s, collapse = collapse_sep)
+  }
+  
+  N_background = length(nodes_tot);
+  
+  n_annot <- dim(df.annot)[1]
+  
+  N_annot_background <- rep(0, n_annot);
+  freq_annot_background <- rep(0, n_annot);
+  nodes_annot_background <- rep("", n_annot);
+  
+  if (showProgress & typeof(idx_subset)!="list") pb <- utils::txtProgressBar(min = 0, max = 2*n_annot, style = 3)
+  count<-0
+  
+  for ( k in 1:dim(df.annot)[1] ){
+    
+    annot <- df.annot$annot_terms[k]
+    
+    idx_annot <- grep(paste("(",collapse_sep,"|^)", annot, "($|",collapse_sep,")",sep=""), 
+                      u_annot_nodes_collapse, fixed=FALSE)
+    
+    #idx_annot <- grep(df.annot$annot_terms[k], u_annot_nodes_collapse, fixed=TRUE)
+    
+    N_annot_background[k] = length(idx_annot);
+    nodes_annot_background[k] = paste(nodes_tot[idx_annot], collapse=";")
+    freq_annot_background[k] = N_annot_background[k]/N_background;
+    
+    count <- count +1
+    if (showProgress & typeof(idx_subset)!="list") utils::setTxtProgressBar(pb, count)
+    # progress bar
+    if (is.function(updateProgress)) {
+      text <- paste0( round(count/(2*n_annot)*100, 0), " %")
+      updateProgress(value = count/(2*n_annot)*100, detail = text)
+    }
+  }
+  
+  N_annotation_test <- length(which(N_annot_background>0))
+  
+  # Perform enrichment test for each annotation and each subset of indices ---------------------------------------
+  
+  if (typeof(idx_subset)=="list"){
+    n_sets <- length(idx_subset)
+  } else {
+    n_sets = 1
+  }
+  
+  df.annot.tot <- list()
+  
+  if (showProgress  & typeof(idx_subset)=="list") {
+    pb <- utils::txtProgressBar(min = 0, max = n_sets, style = 3)
+  }
+  
+  for (i in 1:n_sets){
+    
+    if (showProgress & typeof(idx_subset)=="list"){
+      utils::setTxtProgressBar(pb, i)
+    } 
+    
+    if (typeof(idx_subset)=="list"){
+      idx_d <- idx_subset[[i]]
+    } else {
+      idx_d <- idx_subset
+    }
+    
+    N_annot <- rep(0, n_annot);
+    freq_annot <- rep(0, n_annot);
+    nodes_annot <- rep("", n_annot);
+    p_value <- rep(0, n_annot);
+    fold_change <- rep(0, n_annot);
+    p_value_adjust <- rep(0, n_annot);
+    
+    for( k in 1:n_annot ){
+      
+      annot <- df.annot$annot_terms[k]
+      
+      idx_annot <- idx_d[ grep(paste("(",collapse_sep,"|^)", annot, "($|",collapse_sep,")",sep=""), 
+                               u_annot_nodes_collapse[idx_d], fixed=FALSE) ]
+      
+      #idx_annot <- idx_d[ grep(df.annot$annot_terms[k], u_annot_nodes_collapse[idx_d],fixed=TRUE) ]
+      
+      N_annot[k]=length(idx_annot);
+      N_sample = length(idx_d);
+      
+      freq_annot[k] = N_annot[k]/N_sample;
+      nodes_annot[k]=paste(nodes_tot[idx_annot], collapse=";")
+      
+      inclusive_upper_tail <- 1-phyper(N_annot[k]-1,
+                                       N_annot_background[k],
+                                       N_background-N_annot_background[k],  
+                                       N_sample)
+      
+      inclusive_lower_tail <- phyper(N_annot[k],
+                                     N_annot_background[k],  
+                                     N_background-N_annot_background[k],  
+                                     N_sample)
+      
+      two_sided_hypergeometric_p_value <- 2.0*min(c(inclusive_upper_tail, inclusive_lower_tail))
+      
+      
+      if(two_sided){
+        p_value[k] = two_sided_hypergeometric_p_value
+      }else{
+        p_value[k] = inclusive_upper_tail
+      }
+      
+      
+      fold_change[k] = freq_annot[k]/freq_annot_background[k];
+      
+      count <- count +1
+      if (showProgress & typeof(idx_subset)!="list"){
+        utils::setTxtProgressBar(pb, count)
+      }
+      # progress bar
+      if (is.function(updateProgress)) {
+        text <- paste0( round(count/(2*n_annot)*100, 0), " %")
+        updateProgress(value = count/(2*n_annot)*100, detail = text)
+      }
+    }
+    
+    if (showProgress & typeof(idx_subset)!="list"){
+      close(pb)
+      cat("Done.\n")
+    }
+    
+    if(two_sided){
+      idx_annot_exist <-  which(N_annot_background>0)
+    }else{
+      idx_annot_exist <-  which(N_annot>0)
+    }
+    
+    p_value_adjust_fdr <- rep( 1,length(p_value) );
+    p_value_adjust_bonferroni <- rep( 1,length(p_value) );
+    p_value_adjust_bonferroni[idx_annot_exist] <- p.adjust(p_value[idx_annot_exist], method = "bonferroni");
+    p_value_adjust_fdr[idx_annot_exist] <- p.adjust(p_value[idx_annot_exist], method = "fdr");
+    
+    df.annot.set <- data.frame(
+      N_annot,
+      freq_annot,
+      fold_change, 
+      p_value, 
+      p_value_adjust_fdr,
+      nodes_annot,
+      p_value_adjust_bonferroni,
+      N_annot_background, 
+      freq_annot_background,
+      nodes_annot_background)
+    
+    df.annot.set <- cbind(df.annot, df.annot.set)
+    
+    if (orderOutput) df.annot.set <- df.annot.set[ order(df.annot.set$p_value, decreasing = FALSE), ]
+    
+    df.annot.tot[[i]] <- df.annot.set
+    
+  }
+  
+  if (showProgress & typeof(idx_subset)=="list") close(pb)
+  
+  if (typeof(idx_subset)=="list"){
+    return(df.annot.tot)
+  } else {
+    return(df.annot.tot[[1]])
+  }
+  
+}
 
 #' Plot the result of the annotation enrichment analysis
 #' @param df a formatted data.frame obtained by the function \code{annotation_enrichment_analysis()}
@@ -708,7 +739,12 @@ plot_annotation_results <- function(df,
   df_filter$fold_change[df_filter$fold_change >= fold_change_max_plot] <- fold_change_max_plot
   df_filter$fold_change[df_filter$fold_change <= 1/fold_change_max_plot] <- 1/fold_change_max_plot
   
-  p <- ggplot( df_filter, aes(x=order, y=-log10(p_value) , fill = log2(fold_change))) + 
+  df_filter$minus_log10_p_value <- -log10(df_filter$p_value)
+  df_filter$log2_fold_change = log2(df_filter$fold_change)
+    
+  p <- ggplot( df_filter, aes_string(x="order", 
+                                     y="minus_log10_p_value",
+                                     fill = "log2_fold_change")) + 
     theme(
       axis.text.y = element_text(size=12),
       axis.text.x = element_text(size=12, angle = 90, hjust = 1,vjust=0.5),

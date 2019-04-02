@@ -1,20 +1,22 @@
 Package: pannot
-Title: pannot
+Title: Annotate and perform annotation enrichment analysis within sets of proteins or genes
 Version: 0.1.0
 Date: 2019-01-28
 Author: Guillaume Voisinne
 Maintainer: Guillaume Voisinne <voisinne@ciml.univ-mrs.fr>
-Description: The pannot package provides tools to annotate and analyze annotation enrichment within sets of proteins or genes.
+Description: Annotate and perform annotation enrichment analysis within sets of proteins or genes.
 Imports:
 	ggplot2, 
 	stringr,
 	enrichR,
 	BiocInstaller,
-	PSICQUIC
+	PSICQUIC,
+	queryup
+Remotes: VoisinneG/queryup
 biocViews:
 LazyData: TRUE
 License: file LICENSE
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 Depends:
   S4Vectors,
   R (>= 2.10)

@@ -6,8 +6,8 @@
 \usage{
 annotation_enrichment_analysis(df, sep = NULL, idx_subset,
   annotation_selected = names(df)[2], col_names = names(df)[1],
-  organism = "mouse", two_sided = FALSE, updateProgress = NULL,
-  showProgress = TRUE, orderOutput = TRUE)
+  two_sided = FALSE, updateProgress = NULL, showProgress = TRUE,
+  orderOutput = TRUE)
 }
 \arguments{
 \item{df}{a data.frame with annotations corresponding to each row. Types of annotations are organized by columns. 
@@ -20,8 +20,6 @@ For a given type of annotations, annotations are separated by \code{sep}.}
 \item{annotation_selected}{set of annotations on which to perform the analysis. Annotations selectd must be a subset of df's names.}
 
 \item{col_names}{df's column name containing gene names.}
-
-\item{organism}{organism for which the analysis is to be performed ("mouse" or "human")}
 
 \item{two_sided}{logical, perform a two-sided hypergeometric test}
 
