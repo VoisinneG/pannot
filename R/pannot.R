@@ -120,10 +120,10 @@ get_annotations_enrichr <- function(data, name_id = "names", dbs = "GO_Biologica
 #' @param taxon_ID taxon ID for which to retrieve PPI
 #' @param provider database from which to retrieve PPI
 #' @return a data.frame PPI information
-#' @import S4Vectors
+#' @importFrom S4Vectors DataFrame
 #' @import PSICQUIC
 #' @export
-get_PPI_from_psicquic <- function( gene_name, taxon_ID = c(9606,10090) , provider = c("IntAct","MINT") ){
+get_PPI_from_psicquic <- function( gene_name, taxon_ID = c(9606,10090) , provider = c("IntAct","MINT", "BioGrid") ){
   
   psicquic <- PSICQUIC::PSICQUIC()
   
