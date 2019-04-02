@@ -1,3 +1,86 @@
+#' Create a data.frame with UniProt annotations corrresponding to a set of UniProt IDs
+#'
+#' @param ... Parameters passed to \code{queryup::get_annotations()}
+#' @return a data.frame
+#' @importFrom queryup get_annotations
+#' @export
+get_annotations_uniprot <- function(...){
+  return( queryup::get_annotations(...) )
+}
+
+#' Get annotations using enrichR
+#' @description Get annotations from an enrichR database for a set of genes.
+#' @param data a vector of gene names or a data.frame with gene names in column \code{name_id}
+#' @param name_id column name used to map gene names
+#' @param dbs name of the enrichR database. Use \code{enrichR::listEnrichrDbs()} to see available databases.
+#' @param append_to_data logical, append annotations as a new column
+#' @return an annotated data.frame
+#' @examples
+#' df <- get_annotations_enrichr(c("Itsn2","Eps15l1"))
+#' print(df)
+#' @import enrichR
+#' @export
+get_annotations_enrichr <- function(data, name_id = "names", dbs = "GO_Biological_Process_2018", append_to_data = TRUE){
+  #library(enrichR)
+  #enrichR::listEnrichrDbs()
+  #dbs<-"GO_Biological_Process_2017"
+  
+  df <- data
+  name_id_0 <- name_id
+  
+  if(typeof(data) == "character"){
+    df <- list("names" = data)
+    name_id_0 <- "names"
+  }
+  
+  if( length(setdiff(dbs, names(df)))==0 ){
+    warning("Annotations already loaded")
+    #return(df)
+  }
+  
+  dbs_int <- setdiff(dbs, names(df))
+  enriched <- enrichR::enrichr(as.character(df[[name_id_0]]), dbs_int)
+  
+  annot <- vector("list", length(dbs_int))
+  names(annot) <- dbs_int
+  
+  
+  
+  for(i in 1:length(dbs_int)){
+    
+    annot[[i]] <- rep("", length(df[[name_id_0]]) )
+    
+    for(j in 1:length(enriched[[dbs_int[i]]]$Term)){
+      genes <- strsplit(enriched[[dbs_int[i]]]$Genes[j], split = ";")[[1]]
+      idx_match <- match(genes, toupper(df[[name_id]]))
+      if(length(idx_match)>0){
+        for(k in 1:length(idx_match)){
+          if(nchar(annot[[i]][idx_match[k]])>0){
+            annot[[i]][idx_match[k]] <- paste( c(annot[[i]][idx_match[k]], enriched[[dbs_int[i]]]$Term[j]), collapse = ";")
+          }else{
+            annot[[i]][idx_match[k]] <- enriched[[dbs_int[i]]]$Term[j]
+          }
+          
+        }
+      }
+      
+    }
+    
+    
+  }
+  
+  annot <- as.data.frame(annot)
+  annot[[name_id_0]] <- df[[name_id_0]]
+  
+  if(append_to_data){
+    df <- merge(df, annot, by = name_id_0)
+    return(df)
+  }else{
+    return(annot)
+  }
+  
+}
+
 #' Perform enrichment analysis
 #' @description Perform enrichment analysis using a hypergeometric test for protein annotations stored in a formatted data.frame
 #' @param df a data.frame with annotations corresponding to each row. Types of annotations are organized by columns. 
@@ -257,80 +340,7 @@ annotation_enrichment_analysis <- function( df,
 }
 
 
-#' Get annotations using enrichR
-#' @description Get annotations from an enrichR database for a set of genes.
-#' @param data a vector of gene names or a data.frame with gene names in column \code{name_id}
-#' @param name_id column name used to map gene names
-#' @param dbs name of the enrichR database. Use \code{enrichR::listEnrichrDbs()} to see available databases.
-#' @param append_to_data logical, append annotations as a new column
-#' @return an annotated data.frame
-#' @examples
-#' df <- get_annotations_enrichr(c("Itsn2","Eps15l1"))
-#' print(df)
-#' @import enrichR
-#' @export
-get_annotations_enrichr <- function(data, name_id = "names", dbs = "GO_Biological_Process_2018", append_to_data = TRUE){
-  #library(enrichR)
-  #enrichR::listEnrichrDbs()
-  #dbs<-"GO_Biological_Process_2017"
-  
-  df <- data
-  name_id_0 <- name_id
-    
-  if(typeof(data) == "character"){
-    df <- list("names" = data)
-    name_id_0 <- "names"
-  }
-  
-  if( length(setdiff(dbs, names(df)))==0 ){
-    warning("Annotations already loaded")
-    #return(df)
-  }
-  
-  dbs_int <- setdiff(dbs, names(df))
-  enriched <- enrichR::enrichr(as.character(df[[name_id_0]]), dbs_int)
-  
-  annot <- vector("list", length(dbs_int))
-  names(annot) <- dbs_int
-  
-  
-  
-  for(i in 1:length(dbs_int)){
-    
-    annot[[i]] <- rep("", length(df[[name_id_0]]) )
-    
-    for(j in 1:length(enriched[[dbs_int[i]]]$Term)){
-      genes <- strsplit(enriched[[dbs_int[i]]]$Genes[j], split = ";")[[1]]
-      idx_match <- match(genes, toupper(df[[name_id]]))
-      if(length(idx_match)>0){
-        for(k in 1:length(idx_match)){
-          if(nchar(annot[[i]][idx_match[k]])>0){
-            annot[[i]][idx_match[k]] <- paste( c(annot[[i]][idx_match[k]], enriched[[dbs_int[i]]]$Term[j]), collapse = ";")
-          }else{
-            annot[[i]][idx_match[k]] <- enriched[[dbs_int[i]]]$Term[j]
-          }
-          
-        }
-      }
-      
-    }
-    
-    
-  }
-  
-  annot <- as.data.frame(annot)
-  annot[[name_id_0]] <- df[[name_id_0]]
-  
-  if(append_to_data){
-    df <- merge(df, annot, by = name_id_0)
-    return(df)
-  }else{
-    return(annot)
-  }
-  
-  
-  
-}
+
 
 #' Get annotations from uniprot for a set of protein identifiers
 #' @description Get annotations from uniprot for a set of protein identifiers.
@@ -923,15 +933,15 @@ filter_annotation_results <- function(df,
                        "fdr" = "p_value_adjust_fdr",
                        "bonferroni" = "p_value_adjust_bonferroni")
   
-  df$p_value_adjusted <- df[[name_p_val]]
+  df$p_value <- df[[name_p_val]]
   
   
   if(test_depletion){
-    idx_filter <-  which(df$p_value_adjusted <= p_val_max & 
+    idx_filter <-  which(df$p_value <= p_val_max & 
                            (df$fold_change >= fold_change_min | df$fold_change <= 1/fold_change_min) & 
                            df$N_annot >= N_annot_min)
   } else {
-    idx_filter <-  which(df$p_value_adjusted <= p_val_max & 
+    idx_filter <-  which(df$p_value <= p_val_max & 
                            df$fold_change >= fold_change_min & 
                            df$N_annot >= N_annot_min)
   }
@@ -974,8 +984,7 @@ plot_annotation_results <- function(df,
                        "none" = "p_value",
                        "fdr" = "p_value_adjust_fdr",
                        "bonferroni" = "p_value_adjust_bonferroni")
-  # 
-  # df$p_value_adjusted <- df[[name_p_val]]
+
   
   df_filter <- filter_annotation_results(df, method_adjust_p_val = method_adjust_p_val, ...)
   
@@ -994,7 +1003,7 @@ plot_annotation_results <- function(df,
   df_filter$fold_change[df_filter$fold_change >= fold_change_max_plot] <- fold_change_max_plot
   df_filter$fold_change[df_filter$fold_change <= 1/fold_change_max_plot] <- 1/fold_change_max_plot
   
-  p <- ggplot( df_filter, aes(x=order, y=-log10(p_value_adjusted) , fill = log2(fold_change))) + 
+  p <- ggplot( df_filter, aes(x=order, y=-log10(p_value) , fill = log2(fold_change))) + 
     theme(
       axis.text.y = element_text(size=12),
       axis.text.x = element_text(size=12, angle = 90, hjust = 1,vjust=0.5),
@@ -1015,5 +1024,105 @@ plot_annotation_results <- function(df,
   }
   
   return(p)
+  
+}
+
+
+#' Retrieve data from uniprot using uniprot's REST API
+#'
+#' @param query list of keys corresponding to uniprot's query fields. For example :
+#' list("gene_exact" = c("Pik3r1", "Pik3r2") , "organism" = c("10090", "9606"), "reviewed" = "yes")
+#' @param columns names of uniprot data columns to retrieve. Examples include "id", 
+#' "genes", "keywords", "sequence"
+#' 
+#' @return a data.frame
+#' @export
+#' 
+#' @examples
+#' #Getting gene names, keywords and protein sequences associated with a set of uniprot IDs.
+#' ids <- c("P22682", "P47941")
+#' cols <- c("id", "genes", "keywords", "sequence")
+#' df <- get_uniprot_data(query = list("id" = ids), columns = cols)
+#' 
+#' #Lists all entries describing interactions with the protein described by entry P00520.
+#' df <- get_uniprot_data(query = list("interactor" = "P00520"), columns = cols)
+get_uniprot_data <- function(query = NULL, columns = c("id", "keywords")){
+  
+  df <- NULL
+  
+  if(!is.null(query)){
+    
+    formatted_queries <- sapply(1:length(query), 
+                                function(x){paste(names(query)[x], ":(", 
+                                                  paste(query[[x]], collapse = "+or+"), ")", 
+                                                  sep ="")})
+    
+    url <- 'https://www.uniprot.org/uniprot/?query='
+    full_query <- paste(formatted_queries, collapse = "+and+")
+    
+    cols <- tolower(paste(columns, collapse = ","))
+    full_url <- paste('https://www.uniprot.org/uniprot/?query=', full_query,
+                      '&format=tab&columns=', cols, 
+                      sep = "") 
+    
+    cat(paste("Querying uniprot...\n",sep=""))
+    
+    df <- tryCatch({
+      read.table(full_url,
+                 sep ="\t", 
+                 header = TRUE, 
+                 quote = "")
+    }, error=function(err) {
+      message(
+        "reading url",
+        "\n    ", full_url,
+        "\nfailed"
+      )
+      NULL
+    })
+  }
+    
+  
+  return(df)
+  
+}
+
+
+#' Retrieve data from uniprot using uniprot's REST API. 
+#' To avoid non-responsive queries, they are splitted into 
+#' smaller queries withat most \code{max_keys} items per query field.
+#'
+#' @param query list of keys corresponding to uniprot's query fields. For example :
+#' list("gene_exact" = c("Pik3r1", "Pik3r2") , "organism" = c("10090", "9606"), "reviewed" = "yes")
+#' @param columns names of uniprot data columns to retrieve. Examples include "id", 
+#' "genes", "keywords", "sequence"
+#' @param max_keys maximum number of field items submitted
+#' @return a data.frame
+#' @export
+query_uniprot <- function(query = NULL, columns = c("id", "keywords"), max_keys = 400 ){
+  
+  for ( i in 1:length(query)){
+    
+    if(length(query[[i]]) > max_keys){
+      
+      query_split <- vector("list", 2)
+      
+      query_split[[1]] <- query
+      query_split[[2]] <- query
+      
+      query_split[[1]][[i]] <- query[[i]][1:max_keys]
+      query_split[[2]][[i]] <- query[[i]][(max_keys+1):length(query[[i]])]
+      
+      #query_split[[1]] <- split_query(query_split[[1]], max_keys = max_keys)
+      #query_split[[2]] <- split_query(query_split[[2]], max_keys = max_keys)
+      
+      df_list <- lapply(query_split, query_uniprot, columns = columns, max_keys = max_keys)
+      
+      return(do.call(rbind, df_list))
+      
+    }
+  }
+
+  return( get_uniprot_data(query, columns = columns) )
   
 }
