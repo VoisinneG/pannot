@@ -17,8 +17,12 @@ utils::globalVariables(c("Organism.ID", "nb"))
 #' @export
 parse_ids <- function(x, sep_split = ";", sep_secondary = c("|", "-"), sep_collapse=";"){
   
+  
   if(typeof(x)!="character"){
-    stop("x must be a character string")
+    x <- as.character(x)
+    if(typeof(x)!="character"){
+      stop("Could not convert x into a character")
+    }
   }
   
   if(length(x)>1){
