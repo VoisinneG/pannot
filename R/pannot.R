@@ -38,17 +38,23 @@ parse_ids <- function(x, sep_split = ";", sep_secondary = c("|", "-"), sep_colla
     
     prot_ids <- strsplit(x, split = sep_split, fixed = TRUE)[[1]]
     
-    for(j in 1:length(prot_ids)){
-      
-      prot_id_int <- prot_ids[j]
-      if(length(sep_secondary)>0){
-        for(k in 1:length(sep_secondary)){
-          prot_id_int <- strsplit(prot_id_int, split = sep_secondary[k], fixed = TRUE)[[1]][1]
+    if(length(prot_ids) > 0){
+      for(j in 1:length(prot_ids)){
+        
+        prot_id_int <- prot_ids[j]
+        if(length(sep_secondary)>0){
+          for(k in 1:length(sep_secondary)){
+            prot_id_int <- strsplit(prot_id_int, split = sep_secondary[k], fixed = TRUE)[[1]][1]
+          }
         }
+        prot_ids_all <- c(prot_ids_all, prot_id_int)
+        
       }
-      prot_ids_all <- c(prot_ids_all, prot_id_int)
-       
+    }else{
+      prot_ids_all <- NA
     }
+    
+    
     
     return( paste(unique(prot_ids_all), collapse = sep_collapse) )
   }
