@@ -63,6 +63,7 @@ identify_reviewed_proteins_ids <- function(ids, sep = ";", organism = NULL){
   
   #identify most represented organism for 10 first protein ids
   if(is.null(organism)){
+    cat("Guessing taxon id from 10 first protein IDs\n")
     df <- queryup::query_uniprot(query = list("id" = unique_ids[1:10]), 
                                  columns = c("id", "organism-id"))
     dfgroup <- df %>% 
@@ -73,6 +74,8 @@ identify_reviewed_proteins_ids <- function(ids, sep = ";", organism = NULL){
   }
   
   #get all reviewed protein ids for selecetd organisms
+  cat("Getting SwissProt reviewed entries\n")
+  
   df <- queryup::query_uniprot(query = list("reviewed" = "yes", "organism" = organism ),
                                columns = c("id", "organism", "reviewed"))
   
@@ -121,6 +124,7 @@ get_annotations_uniprot <- function(id,
   query <- list("id" = unique_ids)
   columns <- union("id", columns)
   
+  cat("Getting annotations from UniProt... \n")
   df_annot <- tryCatch({
     
     query_uniprot(query = query,
