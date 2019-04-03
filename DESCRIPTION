@@ -9,6 +9,7 @@ Imports:
 	ggplot2, 
 	stringr,
 	enrichR,
+	dplyr,
 	BiocManager,
 	PSICQUIC,
 	queryup

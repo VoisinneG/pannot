@@ -4,11 +4,14 @@
 \alias{get_annotations_uniprot}
 \title{Create a data.frame with UniProt annotations corrresponding to a set of UniProt IDs}
 \usage{
-get_annotations_uniprot(id, columns = c("genes", "keywords", "families",
-  "go"), max_keys = 400, updateProgress = NULL, show_progress = TRUE)
+get_annotations_uniprot(id, sep = ";", columns = c("genes", "reviewed",
+  "keywords", "families", "go"), max_keys = 400, updateProgress = NULL,
+  show_progress = TRUE)
 }
 \arguments{
 \item{id}{Character vector with UniProt IDs}
+
+\item{sep}{Character separating different protein ids}
 
 \item{columns}{names of uniprot data columns to retrieve. Examples include "id",
 "genes", "keywords", "sequence", "go" (use \code{list_data_columns()} to see the full list)}

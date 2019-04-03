@@ -1,5 +1,101 @@
+utils::globalVariables(c("Organism.ID", "nb"))
+
+#' Parse protein ids.
+#' This is useful to remove additionnal information such as isoform or entry name.
+#' 
+#' @param x Character string with protein ids
+#' @param sep_split Character separating different protein ids
+#' @param sep_secondary Character separating UniProt entry from other infromation in protein ids
+#' @param sep_collapse Character used to separate different protein ids after parsing
+#' @examples
+#' ids <- "A2AMW0|A2AMW0_MOUSE; P47757-2|CAPZB_MOUSE; P47757-4|CAPZB_MOUSE; Q3TVK4|Q3TVK4_MOUSE"
+#' parse_ids(ids, sep = "; ", sep_secondary=c("|", "-"), sep_collapse = ";")
+#' 
+#' ids <- c("Q5SWU9|ACACA_MOUSE", "Q9ES52-2|SHIP1_MOUSE; Q9ES52|SHIP1_MOUSE", "Q8VDD5|MYH9_MOUSE")
+#' parse_ids(ids, sep = "; ", sep_secondary=c("|", "-"), sep_collapse = ";")
+#' 
+#' @export
+parse_ids <- function(x, sep_split = ";", sep_secondary = c("|", "-"), sep_collapse=";"){
+  
+  if(typeof(x)!="character"){
+    stop("x must be a character string")
+  }
+  
+  if(length(x)>1){
+    return(sapply(x, 
+                  parse_ids, 
+                  sep_split = sep_split, 
+                  sep_secondary = sep_secondary,  
+                  sep_collapse = sep_collapse, 
+                  USE.NAMES = FALSE))
+  }
+  else{
+    prot_ids_all <- NULL
+    
+    prot_ids <- strsplit(x, split = sep_split, fixed = TRUE)[[1]]
+    
+    for(j in 1:length(prot_ids)){
+      
+      prot_id_int <- prot_ids[j]
+      if(length(sep_secondary)>0){
+        for(k in 1:length(sep_secondary)){
+          prot_id_int <- strsplit(prot_id_int, split = sep_secondary[k], fixed = TRUE)[[1]][1]
+        }
+      }
+      prot_ids_all <- c(prot_ids_all, prot_id_int)
+       
+    }
+    
+    return( paste(unique(prot_ids_all), collapse = sep_collapse) )
+  }
+}
+  
+#' Identify which protein IDs correspond to SwissProt reviewed entries
+#' @param ids vector of protein ids
+#' @param sep character separating different protein ids
+#' @param organism taxon id (10090 for Mus musculus, 9606 for human). If null, the most represented organism for ten first protein ids is chosen.
+#' @import queryup
+#' @import dplyr
+#' @return a vector of reviwed protein ids
+#' @export
+identify_reviewed_proteins_ids <- function(ids, sep = ";", organism = NULL){
+  unique_ids <- unique( strsplit( paste(ids, collapse = sep), split = sep)[[1]] )
+  
+  #identify most represented organism for 10 first protein ids
+  if(is.null(organism)){
+    df <- queryup::query_uniprot(query = list("id" = unique_ids[1:10]), 
+                                 columns = c("id", "organism-id"))
+    dfgroup <- df %>% 
+      group_by(Organism.ID) %>% 
+      summarise(nb = n()) %>% 
+      filter(nb == max(nb))
+    organism <- dfgroup$Organism.ID
+  }
+  
+  #get all reviewed protein ids for selecetd organisms
+  df <- queryup::query_uniprot(query = list("reviewed" = "yes", "organism" = organism ),
+                               columns = c("id", "organism", "reviewed"))
+  
+  reviewed_ids <- rep(NA, length(ids))
+  is_reviewed <- rep(FALSE, length(ids))
+  for(i in 1:length(ids)){
+    protein_ids <- strsplit(as.character(ids[i]), split = sep)[[1]]
+    idx_match <- match(protein_ids, df[["Entry"]])
+    idx_match <- idx_match[!is.na(idx_match)]
+    if(length(idx_match)>0){
+      reviewed_ids[i] <- paste(df[["Entry"]][idx_match], collapse = sep)
+      is_reviewed[i] <- TRUE
+    }else{
+      reviewed_ids[i] <- paste(protein_ids, collapse = sep)
+    }
+  }
+  
+  return(data.frame(id = reviewed_ids, reviewed = is_reviewed))
+}
+
 #' Create a data.frame with UniProt annotations corrresponding to a set of UniProt IDs
 #' @param id Character vector with UniProt IDs
+#' @param sep Character separating different protein ids
 #' @param columns names of uniprot data columns to retrieve. Examples include "id",
 #' "genes", "keywords", "sequence", "go" (use \code{list_data_columns()} to see the full list)
 #' @param max_keys maximum number of field items submitted
@@ -12,14 +108,17 @@
 #' df <-  get_annotations_uniprot(id = id)
 #' @export
 get_annotations_uniprot <- function(id,
-                            columns = c("genes", "keywords", "families", "go") ,
-                            max_keys = 400,
-                            updateProgress = NULL,
-                            show_progress = TRUE){
+                                    sep = ";",
+                                    columns = c("genes", "reviewed", "keywords", "families", "go") ,
+                                    max_keys = 400,
+                                    updateProgress = NULL,
+                                    show_progress = TRUE){
+                            
   
   idx <- which(!is.na(id))
+  unique_ids <- unique( strsplit( paste(id[idx], collapse = sep), split = sep)[[1]] )
   
-  query <- list("id" = id[idx])
+  query <- list("id" = unique_ids)
   columns <- union("id", columns)
   
   df_annot <- tryCatch({
@@ -37,8 +136,26 @@ get_annotations_uniprot <- function(id,
   
   if(is.null(df_annot)) return(NULL)
   
-  idx_match <- match(id, df_annot$Entry)
-  df <- data.frame(id = id, df_annot[idx_match, ])
+  
+  df_annot_merge <- list()
+  
+  for(i in 1:length(id)){
+    df_annot_merge[[i]] <- rep(NA, dim(df_annot)[2])
+    names(df_annot_merge[[i]]) <- names(df_annot)
+    protein_ids <- strsplit(as.character(id[i]), split = sep)[[1]]
+    idx_match <- match(protein_ids, df_annot[["Entry"]])
+    idx_match <- idx_match[!is.na(idx_match)]
+    if(length(idx_match)>0){
+      for(j in 1:dim(df_annot)[2]){
+        df_annot_merge[[i]][[j]] <- paste(df_annot[[j]][idx_match], collapse = "|") 
+      }
+    }
+  }
+  
+  df_annot_merge <- as.data.frame( do.call(rbind, df_annot_merge) )
+  
+  df <- data.frame(query_id = id, df_annot_merge)
+  
   return(df)
 }
 
