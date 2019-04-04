@@ -4,16 +4,18 @@
 \alias{annotation_enrichment_analysis}
 \title{Perform enrichment analysis}
 \usage{
-annotation_enrichment_analysis(df, sep = NULL, idx_subset,
-  annotation_selected = names(df)[2], col_names = names(df)[1],
-  two_sided = FALSE, updateProgress = NULL, showProgress = TRUE,
-  orderOutput = TRUE)
+annotation_enrichment_analysis(df, sep_split = "|", sep = NULL,
+  idx_subset, annotation_selected = names(df)[2],
+  col_names = names(df)[1], two_sided = FALSE, updateProgress = NULL,
+  showProgress = TRUE, orderOutput = TRUE)
 }
 \arguments{
 \item{df}{a data.frame with annotations corresponding to each row. Types of annotations are organized by columns. 
 For a given type of annotations, annotations are separated by \code{sep}.}
 
-\item{sep}{Character string separating different annotations of a given type}
+\item{sep_split}{Character string separating different annotation groups.}
+
+\item{sep}{Character string separating different annotations.}
 
 \item{idx_subset}{indexes of the foreground set.}
 
