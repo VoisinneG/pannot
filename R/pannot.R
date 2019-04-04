@@ -520,7 +520,8 @@ create_summary_table_PPI <- function(gene_name){
 #' @description Perform enrichment analysis using a hypergeometric test for protein annotations stored in a formatted data.frame
 #' @param df a data.frame with annotations corresponding to each row. Types of annotations are organized by columns. 
 #' For a given type of annotations, annotations are separated by \code{sep}.
-#' @param sep Character string separating different annotations of a given type
+#' @param sep_split Character string separating different annotation groups.
+#' @param sep Character string separating different annotations.
 #' @param idx_subset indexes of the foreground set.
 #' @param annotation_selected set of annotations on which to perform the analysis. Annotations selectd must be a subset of df's names.
 #' @param col_names df's column name containing gene names.
@@ -533,6 +534,7 @@ create_summary_table_PPI <- function(gene_name){
 #' @importFrom stats phyper p.adjust
 #' @export
 annotation_enrichment_analysis <- function( df,
+                                            sep_split="|",
                                             sep = NULL,
                                             idx_subset, 
                                             annotation_selected = names(df)[2], 
@@ -543,7 +545,7 @@ annotation_enrichment_analysis <- function( df,
                                             orderOutput = TRUE){
   
   
-  if( is.null(df) |  (sum(annotation_selected %in% names(df)) != length(annotation_selected)) ){
+  if( is.null(df) | (sum(annotation_selected %in% names(df)) != length(annotation_selected)) ){
     stop("Annotations not available. Import annotations first.")
   }else if ( length(annotation_selected) == 0) {
     stop("No annotations selected. Change selected annotations")
@@ -567,6 +569,8 @@ annotation_enrichment_analysis <- function( df,
   }
   
   for (annot_type_sel in annotation_selected){
+    
+    df_int[[annot_type_sel]] <- gsub(sep_split, collapse_sep, df_int[[annot_type_sel]], fixed = TRUE)
     
     df_int[[annot_type_sel]] <- gsub("(", "_", df_int[[annot_type_sel]], fixed = TRUE)
     df_int[[annot_type_sel]] <- gsub(")", "!", df_int[[annot_type_sel]], fixed = TRUE)
