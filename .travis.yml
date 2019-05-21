@@ -1,5 +1,5 @@
 language: r
-r_packages: BiocInstaller 
+r_packages: BiocManager
 bioc_packages: 
   - PSICQUIC
 use_bioc: true
