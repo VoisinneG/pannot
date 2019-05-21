@@ -4,9 +4,9 @@
 \alias{get_annotations_uniprot}
 \title{Create a data.frame with UniProt annotations corrresponding to a set of UniProt IDs}
 \usage{
-get_annotations_uniprot(id, sep = ";", columns = c("genes", "reviewed",
-  "keywords", "families", "go"), max_keys = 400, updateProgress = NULL,
-  show_progress = TRUE)
+get_annotations_uniprot(id, sep = ";", columns = c("genes", "organism",
+  "reviewed", "keywords", "families", "go"), max_keys = 400,
+  updateProgress = NULL, show_progress = TRUE)
 }
 \arguments{
 \item{id}{Character vector with UniProt IDs}

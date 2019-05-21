@@ -122,7 +122,7 @@ identify_reviewed_proteins_ids <- function(ids, sep = ";", organism = NULL){
 #' @export
 get_annotations_uniprot <- function(id,
                                     sep = ";",
-                                    columns = c("genes", "reviewed", "keywords", "families", "go") ,
+                                    columns = c("genes", "organism", "reviewed", "keywords", "families", "go") ,
                                     max_keys = 400,
                                     updateProgress = NULL,
                                     show_progress = TRUE){
