@@ -461,7 +461,7 @@ get_PPI_from_HPRD <- function( gene_name ){
 #' @export
 create_summary_table_PPI <- function(gene_name){
   
-  cat("Fetching PPi from databases...\n")
+  cat("Fetching PPI from databases...\n")
   pb <- utils::txtProgressBar(min = 0, max = 3, style = 3)
   
   df_psicquic <- try(get_PPI_from_psicquic(gene_name = gene_name), silent = FALSE)
@@ -472,45 +472,59 @@ create_summary_table_PPI <- function(gene_name){
   utils::setTxtProgressBar(pb, 3)
   close(pb)
   
+  
+  
   df_tot <- rbind(df_biogrid, df_psicquic, df_HPRD)
   
   uInteractors <- sort(unique(toupper(c(as.character(df_tot$gene_name_A), as.character(df_tot$gene_name_B) ) )))
   uInteractors <- uInteractors[ uInteractors != toupper(gene_name) ];
   
-  N_pub_0 <- rep(0,length(uInteractors));
-  Authors_0 <- rep("",length(uInteractors));
-  Pubmed_ID_0 <- rep("",length(uInteractors));
-  Detection_method_0 <- rep("",length(uInteractors));
-  Int_type_0 <- rep("",length(uInteractors));
-  Database_0 <- rep("",length(uInteractors));
   
-  for (i in 1:length(uInteractors) ){
+  
+  
+  if(length(uInteractors)>0){
     
-    i_int <- which( toupper(as.character(df_tot$gene_name_A)) == uInteractors[i] | toupper(as.character(df_tot$gene_name_B)) == uInteractors[i]  )
+    N_pub_0 <- rep(0,length(uInteractors));
+    Authors_0 <- rep("",length(uInteractors));
+    Pubmed_ID_0 <- rep("",length(uInteractors));
+    Detection_method_0 <- rep("",length(uInteractors));
+    Int_type_0 <- rep("",length(uInteractors));
+    Database_0 <- rep("",length(uInteractors));
     
-    Authors_0[i] <- paste(as.character(unique(df_tot$Author[i_int])), collapse="|")
+    for (i in 1:length(uInteractors) ){
+      
+      i_int <- which( toupper(as.character(df_tot$gene_name_A)) == uInteractors[i] | toupper(as.character(df_tot$gene_name_B)) == uInteractors[i]  )
+      
+      if(length(i_int)>0){
+        Authors_0[i] <- paste(as.character(unique(df_tot$Author[i_int])), collapse="|")
+        
+        Pubmed_ID_0[i] <- paste(as.character(unique(df_tot$Pubmed_ID[i_int])), collapse=",")
+        spl <- strsplit(Pubmed_ID_0[i], split=",");
+        Pubmed_ID_0[i] <- paste(spl[[1]], collapse="|");
+        N_pub_0[i] <- length(unique(spl[[1]]));
+        
+        #N_pub[idx_int] <- length(unique(df_tot$pubmed_ID[i_int]));
+        
+        Detection_method_0[i] <- paste(as.character(unique(df_tot$Detection_method[i_int])), collapse="|")
+        Int_type_0[i] <- paste(as.character(unique(df_tot$Int_type[i_int])), collapse="|")
+        Database_0[i] <- paste(as.character(unique(df_tot$Database[i_int])), collapse="|")
+      }
+      
+      
+    }
     
-    Pubmed_ID_0[i] <- paste(as.character(unique(df_tot$Pubmed_ID[i_int])), collapse=",")
-    spl <- strsplit(Pubmed_ID_0[i], split=",");
-    Pubmed_ID_0[i] <- paste(spl[[1]], collapse="|");
-    N_pub_0[i] <- length(unique(spl[[1]]));
-    
-    #N_pub[idx_int] <- length(unique(df_tot$pubmed_ID[i_int]));
-    
-    Detection_method_0[i] <- paste(as.character(unique(df_tot$Detection_method[i_int])), collapse="|")
-    Int_type_0[i] <- paste(as.character(unique(df_tot$Int_type[i_int])), collapse="|")
-    Database_0[i] <- paste(as.character(unique(df_tot$Database[i_int])), collapse="|")
-    
+    df_summary <- data.frame(gene_name_A=rep(toupper(gene_name),length(uInteractors)), 
+                            gene_name_B=uInteractors, 
+                            N_pub = N_pub_0, 
+                            Authors = Authors_0, 
+                            Pubmed_ID = Pubmed_ID_0,
+                            Detection_method = Detection_method_0,
+                            Int_type = Int_type_0,
+                            Database= Database_0)
+  }else{
+    message(paste("No interactions involving", gene_name, "found in databases"))
+    df_summary <- NULL
   }
-  
-  df_summary <-data.frame(gene_name_A=rep(toupper(gene_name),length(uInteractors)), 
-                          gene_name_B=uInteractors, 
-                          N_pub = N_pub_0, 
-                          Authors = Authors_0, 
-                          Pubmed_ID = Pubmed_ID_0,
-                          Detection_method = Detection_method_0,
-                          Int_type = Int_type_0,
-                          Database= Database_0)
   
   return(df_summary)
 }
