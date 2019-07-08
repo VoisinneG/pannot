@@ -861,6 +861,7 @@ plot_annotation_results <- function(df,
                                     method_adjust_p_val = "fdr",
                                     fold_change_max_plot = 4,
                                     save_file = NULL,
+                                    filter = FALSE,
                                     ...){
   
   if(length(df) == 0 ){
@@ -873,9 +874,11 @@ plot_annotation_results <- function(df,
                        "none" = "p_value",
                        "fdr" = "p_value_adjust_fdr",
                        "bonferroni" = "p_value_adjust_bonferroni")
-
   
-  df_filter <- filter_annotation_results(df, method_adjust_p_val = method_adjust_p_val, ...)
+  df_filter <- df
+  if(filter){
+    df_filter <- filter_annotation_results(df, method_adjust_p_val = method_adjust_p_val, ...)
+  }
   
   if(length(df_filter$fold_change) == 0){
     warning("No annotation left after filtering. You might want to change input parameters")
@@ -886,6 +889,9 @@ plot_annotation_results <- function(df,
   df_filter$fold_change_sign[df_filter$fold_change>=1] <- 1
   df_filter$fold_change_sign[df_filter$fold_change<1] <- -1
   
+  df_filter$annot_names[df_filter$p_value == 0] <- paste("(0)", df_filter$annot_names[df_filter$p_value == 0])
+  df_filter$p_value[df_filter$p_value == 0] <- min(df_filter$p_value[df_filter$p_value != 0])*0.1
+  
   df_filter <- df_filter[ order(df_filter$fold_change_sign * (-log10(df_filter$p_value)), decreasing = FALSE), ]
   #df_filter <- df_filter[ order(df_filter$p_value, decreasing = TRUE), ]
   df_filter$order <- 1:dim(df_filter)[1]
@@ -894,7 +900,7 @@ plot_annotation_results <- function(df,
   
   df_filter$minus_log10_p_value <- -log10(df_filter$p_value)
   df_filter$log2_fold_change = log2(df_filter$fold_change)
-    
+  
   p <- ggplot( df_filter, aes_string(x="order", 
                                      y="minus_log10_p_value",
                                      fill = "log2_fold_change")) + 
@@ -920,3 +926,4 @@ plot_annotation_results <- function(df,
   return(p)
   
 }
+
