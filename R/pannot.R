@@ -571,6 +571,10 @@ annotation_enrichment_analysis <- function( df,
   
   df_int <- df
   
+  for(i in length(annotation_selected)){
+    df_int[[annotation_selected[i]]] <- as.character(df_int[[annotation_selected[i]]])
+  }
+  
   annot_terms <- NULL
   annot_type <- NULL
   annot_names <- NULL
