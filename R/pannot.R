@@ -849,19 +849,35 @@ filter_annotation_results <- function(df,
 
 #' Plot the result of the annotation enrichment analysis
 #' @param df a formatted data.frame obtained by the function \code{annotation_enrichment_analysis()}
-#' @param method_adjust_p_val name of the p-value variable
-#' @param fold_change_max_plot maximal fold-change displayed
+#' @param method_adjust_p_val name of the p-value variable. Possible choices : "none","fdr" or "bonferroni".
+#' By default : "fdr".
+#' @param fold_change_limits limits for fold-change scale. By default : c(1,4).
 #' @param save_file path where the plot will be saved
-#' @param ... parameters passed to function \code{filter_annotation_results}
+#' @param filter Apply filtering to annotation results (using \code{filter_annotation_results()})
+#' @param type Palette type (one of seq (sequential), div (diverging)) 
+#' @param flip flip x-y coordinates
+#' @param angle angle of x tick labels
+#' @param trans trans object applied to fill scale
+#' @param scale_factor_width factor to adjust plot width
+#' @param scale_factor_height factor to adjust plot height
+#' @param ... parameters passed to function \code{filter_annotation_results()}
 #' @import ggplot2
 #' @importFrom grDevices dev.off pdf
+#' @import scales
+#' @import RColorBrewer
 #' @return a plot
 #' @export
 plot_annotation_results <- function(df,
                                     method_adjust_p_val = "fdr",
-                                    fold_change_max_plot = 4,
+                                    fold_change_limits = c(1,4),
                                     save_file = NULL,
                                     filter = FALSE,
+                                    type = "seq",
+                                    flip = FALSE,
+                                    angle = 90,
+                                    trans = NULL,
+                                    scale_factor_width = 1,
+                                    scale_factor_height = 1,
                                     ...){
   
   if(length(df) == 0 ){
@@ -869,6 +885,13 @@ plot_annotation_results <- function(df,
   }else if( dim(df)[1] == 0){
     warning("Empty input...")
   }
+  
+  if(is.character(trans)){
+    trans <- switch(trans,
+                    "linear" = identity_trans(),
+                    "log2" = log2_trans())
+  }
+  if(is.null(trans)) trans <- identity_trans()
   
   name_p_val <- switch(method_adjust_p_val,
                        "none" = "p_value",
@@ -895,30 +918,46 @@ plot_annotation_results <- function(df,
   df_filter <- df_filter[ order(df_filter$fold_change_sign * (-log10(df_filter$p_value)), decreasing = FALSE), ]
   #df_filter <- df_filter[ order(df_filter$p_value, decreasing = TRUE), ]
   df_filter$order <- 1:dim(df_filter)[1]
-  df_filter$fold_change[df_filter$fold_change >= fold_change_max_plot] <- fold_change_max_plot
-  df_filter$fold_change[df_filter$fold_change <= 1/fold_change_max_plot] <- 1/fold_change_max_plot
+  df_filter$fold_change[df_filter$fold_change >= fold_change_limits[2]] <- fold_change_limits[2]
+  df_filter$fold_change[df_filter$fold_change <= fold_change_limits[1]] <- fold_change_limits[1]
   
   df_filter$minus_log10_p_value <- -log10(df_filter$p_value)
   df_filter$log2_fold_change = log2(df_filter$fold_change)
   
   p <- ggplot( df_filter, aes_string(x="order", 
                                      y="minus_log10_p_value",
-                                     fill = "log2_fold_change")) + 
+                                     fill = "fold_change")) + 
     theme(
       axis.text.y = element_text(size=12),
-      axis.text.x = element_text(size=12, angle = 90, hjust = 1,vjust=0.5),
+      axis.text.x = element_text(size=12, angle = angle, hjust = 1, vjust = 1),
       axis.title.x = element_text(size=10)
     ) +
     scale_x_continuous(name = NULL, breaks=df_filter$order, labels=df_filter$annot_names) +
-    scale_y_continuous(name = paste("-log10(",name_p_val,")",sep="")) +
-    scale_fill_distiller(palette = "RdBu", limits = c(-log2(fold_change_max_plot), log2(fold_change_max_plot))) + 
-    geom_col(...)+
-    coord_flip()
+    scale_y_continuous(name = paste("-log10(",name_p_val,")",sep="")) 
+    #scale_fill_distiller(palette = palette, direction = direction, trans = trans, limits = c(fold_change_limits[1], fold_change_limits[2])) + 
+    
+  if(type == "seq"){
+    p <- p + scale_fill_gradientn(colors = RColorBrewer::brewer.pal(name = "RdBu", n = 11)[6:1],
+                         trans = trans, limits = fold_change_limits)
+  }else if(type == "div"){
+    p <- p + scale_fill_gradientn(colors = RColorBrewer::brewer.pal(name = "RdBu", n = 11)[11:1],
+                                  trans = trans, limits = fold_change_limits)
+  }
+    
+  p <- p +  geom_col(...)
+  
+  if(flip){
+    p <- p + coord_flip()
+  }
   
   if(!is.null(save_file)){
-    plot_width <- 0.1*( 0.5*max( sapply(as.character(df_filter$annot_terms), nchar) ) + 35 )
-    plot_height <- 0.1*(1.5*length(unique(df_filter$annot_terms)) + 20)
-    pdf(save_file, plot_width, plot_height)
+    plot_height <- 0.1*( 0.5*max( sapply(as.character(df_filter$annot_terms), nchar) ) + 20 )
+    plot_width <- 0.13*(1.5*length(unique(df_filter$annot_terms)) + 35)
+    if(flip){
+      plot_width <- 0.13*( 0.5*max( sapply(as.character(df_filter$annot_terms), nchar) ) + 35 )
+      plot_height <- 0.1*(1.5*length(unique(df_filter$annot_terms)) + 20)
+    }
+    pdf(save_file, plot_width*scale_factor_width, plot_height*scale_factor_height)
     print(p)
     dev.off()
   }

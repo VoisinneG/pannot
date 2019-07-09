@@ -7,6 +7,8 @@ Maintainer: Guillaume Voisinne <voisinne@ciml.univ-mrs.fr>
 Description: Annotate and perform annotation enrichment analysis within sets of proteins or genes.
 Imports:
 	ggplot2, 
+	scales,
+	RColorBrewer,
 	stringr,
 	enrichR,
 	dplyr,

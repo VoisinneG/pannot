@@ -5,18 +5,35 @@
 \title{Plot the result of the annotation enrichment analysis}
 \usage{
 plot_annotation_results(df, method_adjust_p_val = "fdr",
-  fold_change_max_plot = 4, save_file = NULL, ...)
+  fold_change_limits = c(1, 4), save_file = NULL, filter = FALSE,
+  type = "seq", flip = FALSE, angle = 90, trans = NULL,
+  scale_factor_width = 1, scale_factor_height = 1, ...)
 }
 \arguments{
 \item{df}{a formatted data.frame obtained by the function \code{annotation_enrichment_analysis()}}
 
-\item{method_adjust_p_val}{name of the p-value variable}
+\item{method_adjust_p_val}{name of the p-value variable. Possible choices : "none","fdr" or "bonferroni".
+By default : "fdr".}
 
-\item{fold_change_max_plot}{maximal fold-change displayed}
+\item{fold_change_limits}{limits for fold-change scale. By default : c(1,4).}
 
 \item{save_file}{path where the plot will be saved}
 
-\item{...}{parameters passed to function \code{filter_annotation_results}}
+\item{filter}{Apply filtering to annotation results (using \code{filter_annotation_results()})}
+
+\item{type}{Palette type (one of seq (sequential), div (diverging))}
+
+\item{flip}{flip x-y coordinates}
+
+\item{angle}{angle of x tick labels}
+
+\item{trans}{trans object applied to fill scale}
+
+\item{scale_factor_width}{factor to adjust plot width}
+
+\item{scale_factor_height}{factor to adjust plot height}
+
+\item{...}{parameters passed to function \code{filter_annotation_results()}}
 }
 \value{
 a plot
