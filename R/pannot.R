@@ -875,6 +875,7 @@ plot_annotation_results <- function(df,
                                     type = "seq",
                                     flip = FALSE,
                                     angle = 90,
+                                    font_size = 10,
                                     trans = NULL,
                                     scale_factor_width = 1,
                                     scale_factor_height = 1,
@@ -900,7 +901,9 @@ plot_annotation_results <- function(df,
   
   df_filter <- df
   if(filter){
-    df_filter <- filter_annotation_results(df, method_adjust_p_val = method_adjust_p_val, ...)
+    df_filter <- filter_annotation_results(df = df, 
+                                           method_adjust_p_val = method_adjust_p_val, 
+                                           ...)
   }
   
   if(length(df_filter$fold_change) == 0){
@@ -912,7 +915,7 @@ plot_annotation_results <- function(df,
   df_filter$fold_change_sign[df_filter$fold_change>=1] <- 1
   df_filter$fold_change_sign[df_filter$fold_change<1] <- -1
   
-  df_filter$annot_names[df_filter$p_value == 0] <- paste("(0)", df_filter$annot_names[df_filter$p_value == 0])
+  df_filter$annot_names[df_filter$p_value == 0] <- paste("*", df_filter$annot_names[df_filter$p_value == 0])
   df_filter$p_value[df_filter$p_value == 0] <- min(df_filter$p_value[df_filter$p_value != 0])*0.1
   
   df_filter <- df_filter[ order(df_filter$fold_change_sign * (-log10(df_filter$p_value)), decreasing = FALSE), ]
@@ -928,9 +931,9 @@ plot_annotation_results <- function(df,
                                      y="minus_log10_p_value",
                                      fill = "fold_change")) + 
     theme(
-      axis.text.y = element_text(size=12),
-      axis.text.x = element_text(size=12, angle = angle, hjust = 1, vjust = 1),
-      axis.title.x = element_text(size=10)
+      axis.text.y = element_text(size=font_size),
+      axis.text.x = element_text(size=font_size, angle = angle, hjust = 1, vjust = 1),
+      axis.title.x = element_text(size=font_size)
     ) +
     scale_x_continuous(name = NULL, breaks=df_filter$order, labels=df_filter$annot_names) +
     scale_y_continuous(name = paste("-log10(",name_p_val,")",sep="")) 
@@ -944,10 +947,12 @@ plot_annotation_results <- function(df,
                                   trans = trans, limits = fold_change_limits)
   }
     
-  p <- p +  geom_col(...)
+  p <- p +  geom_col()
   
   if(flip){
-    p <- p + coord_flip()
+    p <- p + coord_flip() + ylab("")
+  }else{
+    p <- p + xlab("")
   }
   
   if(!is.null(save_file)){
