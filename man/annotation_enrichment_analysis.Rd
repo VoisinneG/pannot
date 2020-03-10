@@ -4,10 +4,18 @@
 \alias{annotation_enrichment_analysis}
 \title{Perform enrichment analysis}
 \usage{
-annotation_enrichment_analysis(df, sep_split = "|", sep = NULL,
-  idx_subset, annotation_selected = names(df)[2],
-  col_names = names(df)[1], two_sided = FALSE, updateProgress = NULL,
-  showProgress = TRUE, orderOutput = TRUE)
+annotation_enrichment_analysis(
+  df,
+  sep_split = "|",
+  sep = NULL,
+  idx_subset,
+  annotation_selected = names(df)[2],
+  col_names = names(df)[1],
+  two_sided = FALSE,
+  updateProgress = NULL,
+  showProgress = TRUE,
+  orderOutput = TRUE
+)
 }
 \arguments{
 \item{df}{a data.frame with annotations corresponding to each row. Types of annotations are organized by columns. 

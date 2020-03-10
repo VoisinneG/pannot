@@ -77,13 +77,14 @@ identify_reviewed_proteins_ids <- function(ids, sep = ";", organism = NULL){
     df <- queryup::query_uniprot(query = list("id" = unique_ids[1:10]), 
                                  columns = c("id", "organism-id"))
     dfgroup <- df %>% 
-      group_by(Organism.ID) %>% 
+      group_by(`Organism ID`) %>% 
       summarise(nb = n()) %>% 
       filter(nb == max(nb))
-    organism <- dfgroup$Organism.ID
+    organism <- dfgroup[["Organism ID"]]
+    cat(paste("taxon : ", organism, "\n"))
   }
   
-  #get all reviewed protein ids for selecetd organisms
+  #get all reviewed protein ids for selected organisms
   cat("Getting SwissProt reviewed entries\n")
   
   df <- queryup::query_uniprot(query = list("reviewed" = "yes", "organism" = organism ),
@@ -205,6 +206,9 @@ get_annotations_enrichr <- function(data, name_id = "names", dbs = "GO_Biologica
   
   dbs_int <- setdiff(dbs, names(df))
   enriched <- enrichR::enrichr(as.character(df[[name_id_0]]), dbs_int)
+  if(is.null(enriched)){
+    return(NULL)
+  }
   
   annot <- vector("list", length(dbs_int))
   names(annot) <- dbs_int
@@ -857,6 +861,7 @@ filter_annotation_results <- function(df,
 #' @param type Palette type (one of seq (sequential), div (diverging)) 
 #' @param flip flip x-y coordinates
 #' @param angle angle of x tick labels
+#' @param font_size font size
 #' @param trans trans object applied to fill scale
 #' @param scale_factor_width factor to adjust plot width
 #' @param scale_factor_height factor to adjust plot height

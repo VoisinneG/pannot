@@ -4,8 +4,11 @@
 \alias{get_PPI_from_psicquic}
 \title{Retrieve protein-protein interaction information using PSICQUIC}
 \usage{
-get_PPI_from_psicquic(gene_name, taxon_ID = c(9606, 10090),
-  provider = c("IntAct", "MINT"))
+get_PPI_from_psicquic(
+  gene_name,
+  taxon_ID = c(9606, 10090),
+  provider = c("IntAct", "MINT")
+)
 }
 \arguments{
 \item{gene_name}{the gene name for which to retrieve PPI}

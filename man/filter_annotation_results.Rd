@@ -4,9 +4,14 @@
 \alias{filter_annotation_results}
 \title{Plot the result of the annotation enrichment analysis}
 \usage{
-filter_annotation_results(df, p_val_max = 0.05,
-  method_adjust_p_val = "fdr", fold_change_min = 2, N_annot_min = 2,
-  test_depletion = FALSE)
+filter_annotation_results(
+  df,
+  p_val_max = 0.05,
+  method_adjust_p_val = "fdr",
+  fold_change_min = 2,
+  N_annot_min = 2,
+  test_depletion = FALSE
+)
 }
 \arguments{
 \item{df}{a formatted data.frame obtained by the function \code{annotation_enrichment_analysis()}}

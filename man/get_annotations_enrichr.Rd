@@ -4,8 +4,12 @@
 \alias{get_annotations_enrichr}
 \title{Get annotations using enrichR}
 \usage{
-get_annotations_enrichr(data, name_id = "names",
-  dbs = "GO_Biological_Process_2018", append_to_data = TRUE)
+get_annotations_enrichr(
+  data,
+  name_id = "names",
+  dbs = "GO_Biological_Process_2018",
+  append_to_data = TRUE
+)
 }
 \arguments{
 \item{data}{a vector of gene names or a data.frame with gene names in column \code{name_id}}

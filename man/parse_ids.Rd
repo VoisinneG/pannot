@@ -5,8 +5,7 @@
 \title{Parse protein ids.
 This is useful to remove additionnal information such as isoform or entry name.}
 \usage{
-parse_ids(x, sep_split = ";", sep_secondary = c("|", "-"),
-  sep_collapse = ";")
+parse_ids(x, sep_split = ";", sep_secondary = c("|", "-"), sep_collapse = ";")
 }
 \arguments{
 \item{x}{Character string with protein ids}

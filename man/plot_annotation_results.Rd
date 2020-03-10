@@ -4,10 +4,21 @@
 \alias{plot_annotation_results}
 \title{Plot the result of the annotation enrichment analysis}
 \usage{
-plot_annotation_results(df, method_adjust_p_val = "fdr",
-  fold_change_limits = c(1, 4), save_file = NULL, filter = FALSE,
-  type = "seq", flip = FALSE, angle = 90, trans = NULL,
-  scale_factor_width = 1, scale_factor_height = 1, ...)
+plot_annotation_results(
+  df,
+  method_adjust_p_val = "fdr",
+  fold_change_limits = c(1, 4),
+  save_file = NULL,
+  filter = FALSE,
+  type = "seq",
+  flip = FALSE,
+  angle = 90,
+  font_size = 10,
+  trans = NULL,
+  scale_factor_width = 1,
+  scale_factor_height = 1,
+  ...
+)
 }
 \arguments{
 \item{df}{a formatted data.frame obtained by the function \code{annotation_enrichment_analysis()}}
@@ -26,6 +37,8 @@ By default : "fdr".}
 \item{flip}{flip x-y coordinates}
 
 \item{angle}{angle of x tick labels}
+
+\item{font_size}{font size}
 
 \item{trans}{trans object applied to fill scale}
 

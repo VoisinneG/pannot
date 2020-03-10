@@ -19,7 +19,7 @@ Remotes: VoisinneG/queryup
 biocViews:
 LazyData: TRUE
 License: file LICENSE
-RoxygenNote: 6.1.1
+RoxygenNote: 7.0.2
 Depends:
   S4Vectors,
   R (>= 2.10)
