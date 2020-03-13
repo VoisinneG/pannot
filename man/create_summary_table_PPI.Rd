@@ -17,3 +17,6 @@ a data.frame PPI information
 Retrieve protein-protein interaction information from databses 
 IntAct, MINT, BioGRID and HPRD
 }
+\examples{
+create_summary_table_PPI(gene_name = "Cd5")
+}

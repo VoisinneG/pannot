@@ -17,3 +17,6 @@ a data.frame PPI information
 \description{
 Retrieve protein-protein interaction information from BioGRID
 }
+\examples{
+get_PPI_from_BioGRID(gene_name = "Cd5")
+}

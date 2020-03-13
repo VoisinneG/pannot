@@ -23,3 +23,6 @@ a data.frame PPI information
 \description{
 Retrieve protein-protein interaction information using PSICQUIC
 }
+\examples{
+get_PPI_from_psicquic(gene_name = "Cd5")
+}

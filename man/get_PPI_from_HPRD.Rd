@@ -12,3 +12,6 @@ get_PPI_from_HPRD(gene_name)
 \description{
 Retrieve protein-protein interaction information from HPRD
 }
+\examples{
+get_PPI_from_HPRD(gene_name = "Cd5")
+}

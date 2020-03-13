@@ -1,4 +1,4 @@
-utils::globalVariables(c("Organism.ID", "nb"))
+utils::globalVariables(c("Organism ID", "nb"))
 
 #' Parse protein ids.
 #' This is useful to remove additionnal information such as isoform or entry name.
@@ -66,7 +66,10 @@ parse_ids <- function(x, sep_split = ";", sep_secondary = c("|", "-"), sep_colla
 #' @param organism taxon id (10090 for Mus musculus, 9606 for human). If null, the most represented organism for ten first protein ids is chosen.
 #' @import queryup
 #' @import dplyr
-#' @return a vector of reviwed protein ids
+#' @return a data.frame with columns 'id' and 'reviewed'
+#' @examples
+#' res <- queryup::get_uniprot_data(query=list("gene"="Pik3r1", "organism"="10090"))
+#' identify_reviewed_proteins_ids(res$Entry)
 #' @export
 identify_reviewed_proteins_ids <- function(ids, sep = ";", organism = NULL){
   unique_ids <- unique( strsplit( paste(ids, collapse = sep), split = sep)[[1]] )
@@ -256,7 +259,9 @@ get_annotations_enrichr <- function(data, name_id = "names", dbs = "GO_Biologica
 #' @param provider database from which to retrieve PPI
 #' @return a data.frame PPI information
 #' @importFrom S4Vectors DataFrame
-#' @import PSICQUIC
+#' @importFrom PSICQUIC PSICQUIC interactions
+#' @examples 
+#' get_PPI_from_psicquic(gene_name = "Cd5")
 #' @export
 get_PPI_from_psicquic <- function( gene_name, taxon_ID = c(9606,10090) , provider = c("IntAct","MINT") ){
   
@@ -379,6 +384,8 @@ get_PPI_from_psicquic <- function( gene_name, taxon_ID = c(9606,10090) , provide
 #' @param taxon_ID taxon ID for which to retrieve PPI
 #' @return a data.frame PPI information
 #' @importFrom utils read.table
+#' @examples 
+#' get_PPI_from_BioGRID(gene_name = "Cd5")
 #' @export
 get_PPI_from_BioGRID <- function( gene_name, taxon_ID = c(9606,10090) ){
   
@@ -440,6 +447,8 @@ get_PPI_from_BioGRID <- function( gene_name, taxon_ID = c(9606,10090) ){
 
 #' Retrieve protein-protein interaction information from HPRD
 #' @param gene_name the gene name for which to retrieve PPI
+#' @examples 
+#' get_PPI_from_HPRD(gene_name = "Cd5")
 #' @export
 get_PPI_from_HPRD <- function( gene_name ){
   
@@ -462,6 +471,8 @@ get_PPI_from_HPRD <- function( gene_name ){
 #' @param gene_name the gene name for which to retrieve PPI
 #' @return a data.frame PPI information
 #' @importFrom utils txtProgressBar setTxtProgressBar
+#' @examples 
+#' create_summary_table_PPI(gene_name = "Cd5")
 #' @export
 create_summary_table_PPI <- function(gene_name){
   

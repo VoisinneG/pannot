@@ -12,7 +12,6 @@ Imports:
 	stringr,
 	enrichR,
 	dplyr,
-	BiocManager,
 	PSICQUIC,
 	queryup
 Remotes: VoisinneG/queryup
