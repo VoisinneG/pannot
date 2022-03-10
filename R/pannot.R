@@ -114,11 +114,12 @@ identify_reviewed_proteins_ids <- function(ids, sep = ";", organism = NULL){
 #' @param id Character vector with UniProt IDs
 #' @param sep Character separating different protein ids
 #' @param columns names of uniprot data columns to retrieve. Examples include "id",
-#' "genes", "keywords", "sequence", "go" (use \code{list_data_columns()} to see the full list)
+#' "genes", "keywords", "sequence", "go". If empty, the list of available columns 
+#' will be printed.
 #' @param max_keys maximum number of field items submitted
 #' @param updateProgress used to display progress in shiny apps
 #' @param show_progress Show progress bar
-#' @importFrom queryup query_uniprot
+#' @importFrom queryup query_uniprot list_data_columns
 #' @return a data.frame
 #' @examples
 #' id <- c("P26450", "O00459")
@@ -132,8 +133,15 @@ get_annotations_uniprot <- function(id,
                                     show_progress = TRUE){
                             
   
+  if(length(columns) == 0){
+    message("Empty argument 'columns'. Please choose amongst the available columns below (see 
+            https://www.uniprot.org/help/uniprotkb_column_names for more details):")
+    print(queryup::list_data_columns())
+    return(NULL)
+  }
+  
   idx <- which(!is.na(id))
-  unique_ids <- unique( strsplit( paste(id[idx], collapse = sep), split = sep)[[1]] )
+  unique_ids <- unique( strsplit( paste(id[idx], collapse = sep), split = sep, fixed = TRUE)[[1]] )
   
   query <- list("id" = unique_ids)
   columns <- union("id", columns)
@@ -160,7 +168,7 @@ get_annotations_uniprot <- function(id,
   for(i in 1:length(id)){
     df_annot_merge[[i]] <- rep(NA, dim(df_annot)[2])
     names(df_annot_merge[[i]]) <- names(df_annot)
-    protein_ids <- strsplit(as.character(id[i]), split = sep)[[1]]
+    protein_ids <- strsplit(as.character(id[i]), split = sep, fixed = TRUE)[[1]]
     idx_match <- match(protein_ids, df_annot[["Entry"]])
     idx_match <- idx_match[!is.na(idx_match)]
     if(length(idx_match)>0){
@@ -252,6 +260,97 @@ get_annotations_enrichr <- function(data, name_id = "names", dbs = "GO_Biologica
   }
   
 }
+
+#' Create a data.frame with all KEGG pathways for a given organism
+#' @param org Organism (ex : "mmu" for mus musculus, "hsa" for homo sapiens).
+#' @importFrom utils read.table
+#' @return a data.frame
+#' @examples
+#' df <-  retrieve_all_KEGG_pathways(org="mmu")
+#' head(df)
+#' @export
+retrieve_all_KEGG_pathways <- function(org="mmu"){
+  
+  # get kegg pathways and corresponding components (with kegg ids)
+  KEGG <- read.table(paste0("http://rest.kegg.jp/link/", org, "/pathway"))
+  names(KEGG) <- c("pathway", "id")
+  
+  u_pathway <- as.character(unique(KEGG$pathway))
+  name_pathway <- rep("", length(u_pathway))
+  gene_pathway <- rep("", length(u_pathway))
+  up_ids_pathway <- rep("", length(u_pathway))
+  
+  # get names of kegg pathways
+  df_pathway <- read.table(paste0("http://rest.kegg.jp/list/pathway/", org), sep = "\t")
+  names(df_pathway) <- c("kegg", "name")
+  df_pathway$name <- sapply(as.character(df_pathway$name), 
+                            function(x){strsplit(x, split=" - ")[[1]][1]})
+  
+  # get mapping between kegg ids and uniprot ids
+  df_ids <- read.table(paste0("http://rest.kegg.jp/conv/uniprot/", org, "/"), header=FALSE)
+  names(df_ids) <- c("kegg", "uniprot")
+  df_ids$kegg <- as.character(df_ids$kegg)
+  df_ids$uniprot <- sapply(as.character(df_ids$uniprot), 
+                           function(x){strsplit(x, split="up:")[[1]][2]})
+  
+  for ( i in 1:length(u_pathway) ){
+    kegg_ids <- as.character(KEGG$id[which(KEGG$pathway == u_pathway[i])])
+    idx_match <- match(kegg_ids, df_ids$kegg)
+    uniprot_ids <- df_ids$uniprot[idx_match[!is.na(idx_match)]]
+    
+    gene_pathway[i] <- paste(kegg_ids, collapse=";")
+    up_ids_pathway[i] <- paste(uniprot_ids, collapse=";")
+    name_pathway[i] <- df_pathway$name[match(u_pathway[i], df_pathway$kegg)]
+  }
+  
+  df <- data.frame(pathway = u_pathway, 
+                   name = name_pathway, 
+                   IDs = gene_pathway,
+                   uniprot = up_ids_pathway)
+  
+  return(df)
+}
+
+#' Create a data.frame with KEGG pathways corrresponding to a set of UniProt IDs
+#' @param id Character vector with UniProt IDs
+#' @param sep Character separating different protein ids
+#' @param org Organism (ex : "mmu" for mus musculus, "hsa" for homo sapiens).
+#' @return a data.frame
+#' @examples
+#' id <- c("P26450", "O00459")
+#' df <- get_annotations_KEGG(id = id)
+#' @export
+get_annotations_KEGG <- function(id, sep = ";", org="mmu"){
+  
+  idx <- which(!is.na(id))
+  unique_ids <- unique( strsplit( paste(id[idx], collapse = sep), split = sep)[[1]] )
+  
+  df_KEGG <- retrieve_all_KEGG_pathways(org=org)
+  
+  kegg_pathways <- sapply(unique_ids, function(x){
+    idx_pathways <- grep(paste0("(;|^)", x, "(;|$)"), df_KEGG$uniprot)
+    return(paste0(df_KEGG$name[idx_pathways], collapse = ";"))
+  })
+  
+  df_annot <- data.frame(id=unique_ids, kegg=kegg_pathways)
+  
+  annot <- rep("", length(id))
+  for(i in 1:length(id)){
+    annot[i] <- ""
+    protein_ids <- strsplit(as.character(id[i]), split = sep)[[1]]
+    idx_match <- match(protein_ids, df_annot$id)
+    idx_match <- idx_match[!is.na(idx_match)]
+    
+    if(length(idx_match)>0){
+      annot[i] <- paste(df_annot$kegg[idx_match], collapse = "|") 
+    }
+
+  }
+  
+  return(data.frame(id = id, kegg = annot))
+  
+}
+
 
 #' Retrieve protein-protein interaction information using PSICQUIC
 #' @param gene_name the gene name for which to retrieve PPI

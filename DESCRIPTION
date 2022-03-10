@@ -13,12 +13,13 @@ Imports:
 	enrichR,
 	dplyr,
 	PSICQUIC,
-	queryup
+	queryup,
+	utils
 Remotes: VoisinneG/queryup
 biocViews:
 LazyData: TRUE
 License: file LICENSE
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.1
 Depends:
   S4Vectors,
   R (>= 2.10)
