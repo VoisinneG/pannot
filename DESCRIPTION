@@ -5,11 +5,11 @@ Date: 2019-01-28
 Author: Guillaume Voisinne
 Maintainer: Guillaume Voisinne <voisinne@ciml.univ-mrs.fr>
 Description: Annotate and perform annotation enrichment analysis within sets of proteins or genes.
+Encoding: UTF-8
 Imports:
 	ggplot2, 
 	scales,
 	RColorBrewer,
-	stringr,
 	enrichR,
 	dplyr,
 	PSICQUIC,
@@ -19,7 +19,7 @@ Remotes: VoisinneG/queryup
 biocViews:
 LazyData: TRUE
 License: file LICENSE
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Depends:
   S4Vectors,
   R (>= 2.10)
