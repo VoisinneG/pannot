@@ -20,6 +20,6 @@ a data.frame with columns 'id' and 'reviewed'
 Identify which protein IDs correspond to SwissProt reviewed entries
 }
 \examples{
-res <- queryup::get_uniprot_data(query=list("gene"="Pik3r1", "organism"="10090"))
+res <- queryup::get_uniprot_data(query=list("gene_exact"="Pik3r1", "organism_id"="10090"))
 identify_reviewed_proteins_ids(res$Entry)
 }

@@ -1,6 +1,6 @@
 Package: pannot
 Title: Annotate and perform annotation enrichment analysis within sets of proteins or genes
-Version: 0.1.0
+Version: 0.2.0
 Date: 2019-01-28
 Author: Guillaume Voisinne
 Maintainer: Guillaume Voisinne <voisinne@ciml.univ-mrs.fr>

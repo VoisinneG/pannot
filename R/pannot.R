@@ -1,4 +1,4 @@
-utils::globalVariables(c("Organism ID", "nb"))
+utils::globalVariables(c("Organism (ID)", "nb"))
 
 #' Parse protein ids.
 #' This is useful to remove additionnal information such as isoform or entry name.
@@ -68,7 +68,7 @@ parse_ids <- function(x, sep_split = ";", sep_secondary = c("|", "-"), sep_colla
 #' @import dplyr
 #' @return a data.frame with columns 'id' and 'reviewed'
 #' @examples
-#' res <- queryup::get_uniprot_data(query=list("gene"="Pik3r1", "organism"="10090"))
+#' res <- queryup::get_uniprot_data(query=list("gene_exact"="Pik3r1", "organism_id"="10090"))
 #' identify_reviewed_proteins_ids(res$Entry)
 #' @export
 identify_reviewed_proteins_ids <- function(ids, sep = ";", organism = NULL){
@@ -76,22 +76,26 @@ identify_reviewed_proteins_ids <- function(ids, sep = ";", organism = NULL){
   
   #identify most represented organism for 10 first protein ids
   if(is.null(organism)){
+    
     cat("Guessing taxon id from 10 first protein IDs\n")
-    df <- queryup::query_uniprot(query = list("id" = unique_ids[1:10]), 
-                                 columns = c("id", "organism-id"))
+    df <- queryup::query_uniprot(
+      query = list("accession_id" = unique_ids[1:min(10, length(unique_ids))]), 
+      columns = c("accession", "organism_id"))
+    
     dfgroup <- df %>% 
-      group_by(`Organism ID`) %>% 
+      group_by(`Organism (ID)`) %>% 
       summarise(nb = n()) %>% 
       filter(nb == max(nb))
-    organism <- dfgroup[["Organism ID"]]
+    
+    organism <- dfgroup[["Organism (ID)"]]
     cat(paste("taxon : ", organism, "\n"))
   }
   
   #get all reviewed protein ids for selected organisms
   cat("Getting SwissProt reviewed entries\n")
   
-  df <- queryup::query_uniprot(query = list("reviewed" = "yes", "organism" = organism ),
-                               columns = c("id", "organism", "reviewed"))
+  df <- queryup::query_uniprot(query = list("reviewed" = "true", "organism_id" = organism ),
+                               columns = c("accession", "organism_id", "reviewed"))
   
   reviewed_ids <- rep(NA, length(ids))
   is_reviewed <- rep(FALSE, length(ids))
@@ -113,9 +117,8 @@ identify_reviewed_proteins_ids <- function(ids, sep = ";", organism = NULL){
 #' Create a data.frame with UniProt annotations corrresponding to a set of UniProt IDs
 #' @param id Character vector with UniProt IDs
 #' @param sep Character separating different protein ids
-#' @param columns names of uniprot data columns to retrieve. Examples include "id",
-#' "genes", "keywords", "sequence", "go". If empty, the list of available columns 
-#' will be printed.
+#' @param columns names of uniprot data columns to retrieve. 
+#' Examples include "accession", keyword", "sequence", "go".
 #' @param max_keys maximum number of field items submitted
 #' @param updateProgress used to display progress in shiny apps
 #' @param show_progress Show progress bar
@@ -127,15 +130,15 @@ identify_reviewed_proteins_ids <- function(ids, sep = ";", organism = NULL){
 #' @export
 get_annotations_uniprot <- function(id,
                                     sep = ";",
-                                    columns = c("genes", "organism", "reviewed", "keywords", "families", "go") ,
+                                    columns = c("gene_names", "organism_id", 
+                                                "reviewed", "keyword", "protein_families", "go") ,
                                     max_keys = 400,
                                     updateProgress = NULL,
                                     show_progress = TRUE){
                             
   
   if(length(columns) == 0){
-    message("Empty argument 'columns'. Please choose amongst the available columns below (see 
-            https://www.uniprot.org/help/uniprotkb_column_names for more details):")
+    message("Empty argument 'columns'.")
     print(queryup::list_data_columns())
     return(NULL)
   }
@@ -143,13 +146,13 @@ get_annotations_uniprot <- function(id,
   idx <- which(!is.na(id))
   unique_ids <- unique( strsplit( paste(id[idx], collapse = sep), split = sep, fixed = TRUE)[[1]] )
   
-  query <- list("id" = unique_ids)
-  columns <- union("id", columns)
+  query <- list("accession_id" = unique_ids)
+  columns <- union("accession", columns)
   
   cat("Getting annotations from UniProt... \n")
   df_annot <- tryCatch({
     
-    query_uniprot(query = query,
+    queryup::query_uniprot(query = query,
                   columns = columns,
                   max_keys = max_keys,
                   updateProgress = updateProgress,

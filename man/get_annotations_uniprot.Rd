@@ -7,7 +7,8 @@
 get_annotations_uniprot(
   id,
   sep = ";",
-  columns = c("genes", "organism", "reviewed", "keywords", "families", "go"),
+  columns = c("gene_names", "organism_id", "reviewed", "keyword", "protein_families",
+    "go"),
   max_keys = 400,
   updateProgress = NULL,
   show_progress = TRUE
@@ -18,9 +19,8 @@ get_annotations_uniprot(
 
 \item{sep}{Character separating different protein ids}
 
-\item{columns}{names of uniprot data columns to retrieve. Examples include "id",
-"genes", "keywords", "sequence", "go". If empty, the list of available columns 
-will be printed.}
+\item{columns}{names of uniprot data columns to retrieve. 
+Examples include "accession", keyword", "sequence", "go".}
 
 \item{max_keys}{maximum number of field items submitted}
 
