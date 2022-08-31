@@ -9,7 +9,7 @@ get_annotations_uniprot(
   sep = ";",
   columns = c("gene_names", "organism_id", "reviewed", "keyword", "protein_families",
     "go"),
-  max_keys = 400,
+  max_keys = 300,
   updateProgress = NULL,
   show_progress = TRUE
 )

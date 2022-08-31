@@ -68,7 +68,7 @@ parse_ids <- function(x, sep_split = ";", sep_secondary = c("|", "-"), sep_colla
 #' @import dplyr
 #' @return a data.frame with columns 'id' and 'reviewed'
 #' @examples
-#' res <- queryup::get_uniprot_data(query=list("gene_exact"="Pik3r1", "organism_id"="10090"))
+#' res <- queryup::query_uniprot(query=list("gene_exact"="Pik3r1", "organism_id"="10090"))
 #' identify_reviewed_proteins_ids(res$Entry)
 #' @export
 identify_reviewed_proteins_ids <- function(ids, sep = ";", organism = NULL){
@@ -132,7 +132,7 @@ get_annotations_uniprot <- function(id,
                                     sep = ";",
                                     columns = c("gene_names", "organism_id", 
                                                 "reviewed", "keyword", "protein_families", "go") ,
-                                    max_keys = 400,
+                                    max_keys = 300,
                                     updateProgress = NULL,
                                     show_progress = TRUE){
                             
@@ -159,7 +159,8 @@ get_annotations_uniprot <- function(id,
                   show_progress = show_progress)
     
   }, error = function(err){
-    warning("Query failed. Please retry later.")
+    warning("Query failed : ", err)
+    #print(err)
     NULL
   })
   
