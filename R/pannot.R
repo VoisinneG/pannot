@@ -122,7 +122,7 @@ identify_reviewed_proteins_ids <- function(ids, sep = ";", organism = NULL){
 #' @param max_keys maximum number of field items submitted
 #' @param updateProgress used to display progress in shiny apps
 #' @param show_progress Show progress bar
-#' @importFrom queryup query_uniprot list_data_columns
+#' @importFrom queryup query_uniprot
 #' @return a data.frame
 #' @examples
 #' id <- c("P26450", "O00459")
@@ -139,7 +139,6 @@ get_annotations_uniprot <- function(id,
   
   if(length(columns) == 0){
     message("Empty argument 'columns'.")
-    print(queryup::list_data_columns())
     return(NULL)
   }
   

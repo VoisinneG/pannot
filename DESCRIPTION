@@ -15,7 +15,6 @@ Imports:
 	PSICQUIC,
 	queryup,
 	utils
-Remotes: VoisinneG/queryup
 biocViews:
 LazyData: TRUE
 License: file LICENSE
