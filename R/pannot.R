@@ -54,8 +54,6 @@ parse_ids <- function(x, sep_split = ";", sep_secondary = c("|", "-"), sep_colla
       prot_ids_all <- NA
     }
     
-    
-    
     return( paste(unique(prot_ids_all), collapse = sep_collapse) )
   }
 }
@@ -354,133 +352,6 @@ get_annotations_KEGG <- function(id, sep = ";", org="mmu"){
   
 }
 
-
-#' Retrieve protein-protein interaction information using PSICQUIC
-#' @param gene_name the gene name for which to retrieve PPI
-#' @param taxon_ID taxon ID for which to retrieve PPI
-#' @param provider database from which to retrieve PPI
-#' @return a data.frame PPI information
-#' @importFrom S4Vectors DataFrame
-#' @importFrom PSICQUIC PSICQUIC interactions
-#' @examples 
-#' get_PPI_from_psicquic(gene_name = "Cd5")
-#' @export
-get_PPI_from_psicquic <- function( gene_name, taxon_ID = c(9606,10090) , provider = c("IntAct","MINT") ){
-  
-  psicquic <- PSICQUIC::PSICQUIC()
-  
-  for (k in 1:length(taxon_ID) ){
-    
-    tbl <- PSICQUIC::interactions(psicquic, 
-                                  gene_name, 
-                                  species = taxon_ID[k] , 
-                                  provider = provider )
-    
-    
-    s<-strsplit(tbl$aliasA, split="|", fixed = TRUE);
-    gene_name_A <- rep("",length(s))
-    if(length(s)>0){
-      for (i in 1:length(s) ){
-        ign<-grep("(gene name)",s[[i]],fixed=TRUE)
-        if(length(ign)>0){
-          gene_name_A[i] <- strsplit( strsplit(s[[i]][ign],split=":")[[1]][2], 
-                                      split="(" ,fixed=TRUE )[[1]][1]
-          
-        }
-      }
-    }
-    
-    s<-strsplit(tbl$aliasB,split="|",fixed = TRUE);
-    gene_name_B <- rep("",length(s))
-    if(length(s)>0){
-      for (i in 1:length(s) ){
-        ign<-grep("(gene name)",s[[i]],fixed=TRUE)
-        if(length(ign)>0){
-          gene_name_B[i] <- strsplit( strsplit(s[[i]][ign],split=":")[[1]][2], 
-                                      split="(" ,fixed=TRUE )[[1]][1]
-        }
-      }
-    }
-    
-    s<-strsplit(tbl$A,split = ":")
-    uniprot_A <- rep("",length(s))
-    if(length(s)>0){
-      for (i in 1:length(s) ){
-        uniprot_A[i] <- s[[i]][2]
-      }
-    }
-    
-    s<-strsplit(tbl$B,split = ":")
-    uniprot_B <- rep("",length(s))
-    if(length(s)>0){
-      for (i in 1:length(s) ){
-        uniprot_B[i] <- s[[i]][2]
-      }
-    }
-    
-    s<-strsplit(tbl$publicationID,split = "|",fixed=TRUE)
-    Pubmed_ID <- rep("",length(s))
-    if(length(s)>0){
-      for (i in 1:length(s) ){
-        ip<-grep("pubmed",s[[i]],fixed=TRUE);
-        Pubmed_ID[i] <- strsplit(s[[i]][ip],split=":")[[1]][2];
-      }
-    }
-    
-    s<-strsplit(tbl$type,split = "(",fixed=TRUE)
-    Int_type <- rep("",length(s))
-    if(length(s)>0){
-      for (i in 1:length(s) ){
-        Int_type[i] <- strsplit(s[[i]][2],split=")",fixed=TRUE)[[1]][1];
-      }
-    }
-    
-    s<-strsplit(tbl$detectionMethod,split = "(",fixed=TRUE)
-    Detection_method <- rep("",length(s))
-    if(length(s)>0){
-      for (i in 1:length(s) ){
-        Detection_method[i] <- strsplit(s[[i]][2],split=")",fixed=TRUE)[[1]][1];
-      }
-    }
-    
-    s<-strsplit(tbl$firstAuthor,split = " ",fixed=TRUE)
-    Author <- rep("",length(s))
-    if(length(s)>0){
-      for (i in 1:length(s) ){
-        Author[i] <- paste(s[[i]][1], s[[i]][length(s[[i]])],sep=" ");
-      }
-    }
-    
-    Encoding( Author ) <- "latin1"
-    taxon<-rep(taxon_ID[k],length(s) );
-    
-    if(k>1){
-      #df2<-data.frame(gene_name_A, gene_name_B, uniprot_A, uniprot_B, taxon, Int_type, Detection_method, Author=Author, pubmed_ID=pubmed_ID, Database=tbl$provider)
-      df2<-data.frame(gene_name_A, gene_name_B, taxon, Int_type, 
-                      Detection_method, 
-                      Author=iconv(Author, "latin1", "ASCII", sub="_"), 
-                      Pubmed_ID=Pubmed_ID, 
-                      Database=tbl$provider)
-      df1<-rbind(df1,df2);
-      
-    }
-    else{
-      #df1<-data.frame(gene_name_A, gene_name_B, uniprot_A, uniprot_B, taxon, Int_type, Detection_method, Author=Author, pubmed_ID=pubmed_ID, Database=tbl$provider)
-      df1<-data.frame(gene_name_A, gene_name_B, taxon, Int_type, 
-                      Detection_method, 
-                      Author=iconv(Author, "latin1", "ASCII", sub="_"), 
-                      Pubmed_ID=Pubmed_ID, 
-                      Database=tbl$provider)
-      
-    }
-    
-    df1 <- df1[nchar(as.character(df1$gene_name_A))>0 & nchar(as.character(df1$gene_name_B))>0 , ]
-    
-  }
-  
-  return(df1)
-}
-
 #' Retrieve protein-protein interaction information from BioGRID
 #' @param gene_name the gene name for which to retrieve PPI
 #' @param taxon_ID taxon ID for which to retrieve PPI
@@ -581,19 +452,21 @@ create_summary_table_PPI <- function(gene_name){
   cat("Fetching PPI from databases...\n")
   pb <- utils::txtProgressBar(min = 0, max = 3, style = 3)
   
-  df_psicquic <- try(get_PPI_from_psicquic(gene_name = gene_name), silent = FALSE)
-  utils::setTxtProgressBar(pb, 1)
   df_biogrid <- get_PPI_from_BioGRID(gene_name = gene_name)
-  utils::setTxtProgressBar(pb, 2)
+  utils::setTxtProgressBar(pb, 1)
   df_HPRD <- get_PPI_from_HPRD(gene_name = gene_name)
-  utils::setTxtProgressBar(pb, 3)
+  utils::setTxtProgressBar(pb, 1)
   close(pb)
   
   
   
-  df_tot <- rbind(df_biogrid, df_psicquic, df_HPRD)
+  df_tot <- rbind(df_biogrid, df_HPRD)
   
-  uInteractors <- sort(unique(toupper(c(as.character(df_tot$gene_name_A), as.character(df_tot$gene_name_B) ) )))
+  uInteractors <- sort(
+    unique(
+      toupper(c(as.character(df_tot$gene_name_A), 
+                as.character(df_tot$gene_name_B) ) )))
+  
   uInteractors <- uInteractors[ uInteractors != toupper(gene_name) ];
   
   
@@ -610,7 +483,9 @@ create_summary_table_PPI <- function(gene_name){
     
     for (i in 1:length(uInteractors) ){
       
-      i_int <- which( toupper(as.character(df_tot$gene_name_A)) == uInteractors[i] | toupper(as.character(df_tot$gene_name_B)) == uInteractors[i]  )
+      i_int <- which( 
+        toupper(as.character(df_tot$gene_name_A)) == uInteractors[i] | 
+          toupper(as.character(df_tot$gene_name_B)) == uInteractors[i]  )
       
       if(length(i_int)>0){
         Authors_0[i] <- paste(as.character(unique(df_tot$Author[i_int])), collapse="|")

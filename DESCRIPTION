@@ -12,7 +12,6 @@ Imports:
 	RColorBrewer,
 	enrichR,
 	dplyr,
-	PSICQUIC,
 	queryup,
 	utils
 biocViews:
@@ -20,5 +19,4 @@ LazyData: TRUE
 License: file LICENSE
 RoxygenNote: 7.1.2
 Depends:
-  S4Vectors,
   R (>= 2.10)
