@@ -188,20 +188,28 @@ get_annotations_uniprot <- function(id,
 
 #' Get annotations using enrichR
 #' @description Get annotations from an enrichR database for a set of genes.
-#' @param data a vector of gene names or a data.frame with gene names in column \code{name_id}
+#' @param data a vector of gene names or a data.frame with gene names in 
+#' column \code{name_id}
 #' @param name_id column name used to map gene names
-#' @param dbs name of the enrichR database. Use \code{enrichR::listEnrichrDbs()} to see available databases.
+#' @param dbs name of the enrichR database. 
+#' Use \code{enrichR::listEnrichrDbs()} to see available databases.
 #' @param append_to_data logical, append annotations as a new column
 #' @return an annotated data.frame
 #' @examples
 #' df <- get_annotations_enrichr(c("Itsn2","Eps15l1"))
 #' print(df)
-#' @import enrichR
 #' @export
-get_annotations_enrichr <- function(data, name_id = "names", dbs = "GO_Biological_Process_2018", append_to_data = TRUE){
+get_annotations_enrichr <- function(data, 
+                                    name_id = "names", 
+                                    dbs = "GO_Biological_Process_2018", 
+                                    append_to_data = TRUE){
   #library(enrichR)
   #enrichR::listEnrichrDbs()
   #dbs<-"GO_Biological_Process_2017"
+  
+  if (!requireNamespace("enrichR")) {
+    return(NULL)
+  }
   
   df <- data
   name_id_0 <- name_id
@@ -217,7 +225,10 @@ get_annotations_enrichr <- function(data, name_id = "names", dbs = "GO_Biologica
   }
   
   dbs_int <- setdiff(dbs, names(df))
+  
+  
   enriched <- enrichR::enrichr(as.character(df[[name_id_0]]), dbs_int)
+  
   if(is.null(enriched)){
     return(NULL)
   }

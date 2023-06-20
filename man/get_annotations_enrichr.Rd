@@ -12,11 +12,13 @@ get_annotations_enrichr(
 )
 }
 \arguments{
-\item{data}{a vector of gene names or a data.frame with gene names in column \code{name_id}}
+\item{data}{a vector of gene names or a data.frame with gene names in 
+column \code{name_id}}
 
 \item{name_id}{column name used to map gene names}
 
-\item{dbs}{name of the enrichR database. Use \code{enrichR::listEnrichrDbs()} to see available databases.}
+\item{dbs}{name of the enrichR database. 
+Use \code{enrichR::listEnrichrDbs()} to see available databases.}
 
 \item{append_to_data}{logical, append annotations as a new column}
 }

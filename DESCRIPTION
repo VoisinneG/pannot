@@ -10,10 +10,11 @@ Imports:
 	ggplot2, 
 	scales,
 	RColorBrewer,
-	enrichR,
 	dplyr,
 	queryup,
 	utils
+Suggests:
+  enrichR
 biocViews:
 LazyData: TRUE
 License: file LICENSE
